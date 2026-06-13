@@ -1,0 +1,2 @@
+# Sweepr
+Sweepstake app
