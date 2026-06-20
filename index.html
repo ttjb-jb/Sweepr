@@ -411,7 +411,7 @@ function toCardData(id,sw,userId){
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────
-function Dashboard({user,onLogout,onOpenSweepstake,onCreateNew}){
+function Dashboard({user,onLogout,onOpenSweepstake,onCreateNew,onJoinViaInvite}){
   const[sweepstakes,setSweepstakes]=useState([]);
   const[invites,setInvites]=useState([]);
   const[loading,setLoading]=useState(true);
@@ -464,20 +464,12 @@ function Dashboard({user,onLogout,onOpenSweepstake,onCreateNew}){
   const bestPosition=liveSweeps.reduce((best,s)=>s.position&&(!best||s.position<best)?s.position:best,null);
 
   async function acceptInvite(invite){
-    const{db,doc,updateDoc,arrayUnion,setDoc,getDoc}=window._fb;
+    const{db,doc,updateDoc}=window._fb;
     try{
-      // Add user to the sweepstake's memberIds and link their player name
-      const swRef=doc(db,"sweepstakes",invite.sweepstakeId);
-      const swSnap=await getDoc(swRef);
-      if(swSnap.exists()){
-        const updates={memberIds:arrayUnion(user.uid)};
-        if(invite.playerName){
-          const sw=swSnap.data();
-          updates[`playerUserIds.${invite.playerName}`]=user.uid;
-        }
-        await updateDoc(swRef,updates);
-      }
+      // Mark the email invite as accepted, then send them through the same
+      // "pick your name" flow used by invite links, so they always claim a player slot.
       await updateDoc(doc(db,"invites",invite.id),{status:"accepted"});
+      onJoinViaInvite(invite.sweepstakeId);
     }catch(e){setError(e.message);}
   }
   async function declineInvite(invite){
@@ -2223,6 +2215,7 @@ function App(){
       onLogout={handleLogout}
       onOpenSweepstake={sw=>{setOpenSweepstakeId(sw.id);setScreen("view");}}
       onCreateNew={()=>setScreen("create")}
+      onJoinViaInvite={(swId)=>setInviteId(swId)}
     />
   );
 }
