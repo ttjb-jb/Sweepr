@@ -102,7 +102,7 @@ const ADMIN_UID="9IH1TgmUjoTWjSokUntmd6jltzg2";
 const menuItemStyle={display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",color:C.chalk,fontSize:13,fontWeight:600,padding:"10px 14px",cursor:"pointer"};
 
 // ── LOGIN SCREEN ─────────────────────────────────────────────
-function LoginScreen({onLogin,initialError,debugLog,log,inviteId}){
+function LoginScreen({onLogin,initialError,inviteId}){
   const[mode,setMode]=useState("login"); // login | signup
   const[email,setEmail]=useState("");
   const[password,setPassword]=useState("");
@@ -129,7 +129,6 @@ function LoginScreen({onLogin,initialError,debugLog,log,inviteId}){
     try{
       const{auth,GoogleAuthProvider,signInWithPopup,signInWithRedirect}=window._fb;
       const provider=new GoogleAuthProvider();
-      if(log)log(`Attempting signInWithPopup (all devices)`);
       await signInWithPopup(auth,provider);
     }catch(err){
       setError(err.code?`${err.code}: ${err.message}`:err.message||String(err));
@@ -215,16 +214,6 @@ function LoginScreen({onLogin,initialError,debugLog,log,inviteId}){
         <div style={{textAlign:"center",marginTop:20,fontSize:11,color:C.chalkDim}} className="mono">
           By continuing you agree to Sweepr's Terms & Privacy Policy
         </div>
-
-        {debugLog&&debugLog.length>0&&(
-          <div style={{marginTop:20,background:"#06140c",border:`1px solid ${C.pitchBorder}`,borderRadius:8,padding:12,fontSize:10,color:"#7fae93",fontFamily:"monospace",whiteSpace:"pre-wrap",wordBreak:"break-all"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-              <span style={{color:C.amber,fontWeight:700}}>🐛 DEBUG LOG</span>
-              <button onClick={()=>{localStorage.removeItem("sweepr_debug_log");window.location.reload();}} style={{background:"transparent",border:`1px solid ${C.pitchBorder}`,color:C.chalkDim,borderRadius:4,padding:"2px 8px",fontSize:9,cursor:"pointer"}}>Clear & Reload</button>
-            </div>
-            {debugLog.map((l,i)=><div key={i}>{l}</div>)}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -704,6 +693,11 @@ function ManagePresets({user,onBack}){
     }catch(e){setError(e.message);}
   }
 
+  function clonePreset(p){
+    // Open the editor pre-filled from p, but flagged as new so it saves as a separate preset
+    setEditing({...p, _cloneFrom:p.name, id:undefined});
+  }
+
   if(editing){
     return <PresetEditor preset={editing==="new"?null:editing} onSaved={()=>{setEditing(null);loadPresets();}} onCancel={()=>setEditing(null)}/>;
   }
@@ -743,6 +737,7 @@ function ManagePresets({user,onBack}){
                   <div className="mono" style={{fontSize:11,color:C.chalkDim}}>{p.format} · {(p.teams||[]).length} teams · {(p.fixtures||[]).length} fixtures</div>
                 </div>
                 <button onClick={()=>setEditing(p)} style={{...pillBtn,padding:"6px 12px",fontSize:11}}>Edit</button>
+                <button onClick={()=>clonePreset(p)} style={{...pillBtn,padding:"6px 12px",fontSize:11}}>Clone</button>
                 <button onClick={()=>toggleArchive(p)} style={{...pillBtn,padding:"6px 12px",fontSize:11}}>{p.archived?"Unarchive":"Archive"}</button>
                 <button onClick={()=>deletePreset(p)} style={{...pillBtn,padding:"6px 12px",fontSize:11,color:C.red,borderColor:C.red}}>Delete</button>
               </div>
@@ -755,9 +750,10 @@ function ManagePresets({user,onBack}){
 }
 
 function PresetEditor({preset,onSaved,onCancel}){
-  const isNew=!preset;
+  const isNew=!preset||!preset.id;
+  const isClone=!!(preset&&preset._cloneFrom);
   const[id,setId]=useState(preset?.id||"");
-  const[name,setName]=useState(preset?.name||"");
+  const[name,setName]=useState(isClone?`${preset.name} (Copy)`:(preset?.name||""));
   const[icon,setIcon]=useState(preset?.icon||"🏆");
   const[format,setFormat]=useState(preset?.format||"league");
   const[desc,setDesc]=useState(preset?.desc||"");
@@ -823,7 +819,7 @@ function PresetEditor({preset,onSaved,onCancel}){
       <div style={{borderBottom:`1px solid ${C.pitchBorder}`,padding:"0 20px"}}>
         <div style={{maxWidth:700,margin:"0 auto",display:"flex",alignItems:"center",gap:14,padding:"18px 0"}}>
           <button onClick={onCancel} style={{background:"transparent",border:`1px solid ${C.pitchBorder}`,color:C.chalkDim,borderRadius:6,width:34,height:34,cursor:"pointer",fontSize:16}}>←</button>
-          <div className="display" style={{fontSize:20}}>{isNew?"NEW PRESET":"EDIT PRESET"}</div>
+          <div className="display" style={{fontSize:20}}>{isClone?"CLONE PRESET":isNew?"NEW PRESET":"EDIT PRESET"}</div>
         </div>
       </div>
 
@@ -832,6 +828,7 @@ function PresetEditor({preset,onSaved,onCancel}){
           {isNew&&(
             <>
               <label style={fieldLabel}>Preset ID (used internally, no spaces)</label>
+              {isClone&&<div className="mono" style={{fontSize:11,color:C.amber,marginBottom:6}}>Cloned from "{preset._cloneFrom}" — give this a new ID and update the details below</div>}
               <input value={id} onChange={e=>setId(e.target.value)} placeholder="e.g. pl_2027_28" style={fieldInput}/>
             </>
           )}
@@ -2496,49 +2493,12 @@ function App(){
       return new URLSearchParams(window.location.search).get("invite");
     }catch(e){return null;}
   });
-  const[debugLog,setDebugLog]=useState(()=>{
-    try{
-      const saved=localStorage.getItem("sweepr_debug_log");
-      return saved?JSON.parse(saved):[];
-    }catch(e){return[];}
-  });
-
-  function log(msg){
-    setDebugLog(prev=>{
-      const next=[...prev,`${new Date().toLocaleTimeString()} — ${msg}`].slice(-12);
-      try{localStorage.setItem("sweepr_debug_log",JSON.stringify(next));}catch(e){}
-      return next;
-    });
-  }
 
   useEffect(()=>{
-    log("App mounted, waiting for Firebase...");
     const wait=()=>{
       if(!window._fb){setTimeout(wait,100);return;}
-      log("Firebase ready");
-      const{auth,onAuthStateChanged,getRedirectResult}=window._fb;
-      log(`Current URL: ${window.location.href}`);
-      log(`auth.currentUser immediately: ${auth.currentUser?auth.currentUser.email:"null"}`);
-
-      onAuthStateChanged(auth,u=>{
-        log(`Auth state changed: ${u?u.email:"logged out"}`);
-        setUser(u);
-      });
-
-      getRedirectResult(auth).then(result=>{
-        if(result&&result.user){
-          log(`Redirect SUCCESS: ${result.user.email}`);
-        }else{
-          log("Redirect result: no user (null)");
-          // Fallback: check currentUser again after a short delay
-          setTimeout(()=>{
-            log(`Recheck currentUser after 1.5s: ${auth.currentUser?auth.currentUser.email:"still null"}`);
-          },1500);
-        }
-      }).catch(err=>{
-        log(`Redirect ERROR: ${err.code||err.message}`);
-        setAuthError(err.code?`${err.code}: ${err.message}`:String(err));
-      });
+      const{auth,onAuthStateChanged}=window._fb;
+      onAuthStateChanged(auth,u=>setUser(u));
     };
     wait();
   },[]);
@@ -2557,7 +2517,7 @@ function App(){
   }
 
   if(!user){
-    return <LoginScreen initialError={authError} debugLog={debugLog} log={log} inviteId={inviteId}/>;
+    return <LoginScreen initialError={authError} inviteId={inviteId}/>;
   }
 
   if(inviteId){
