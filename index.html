@@ -430,6 +430,30 @@ function teamsOwnedBy(playerName,sw){
 
 // Aggregates a single user's stats across ALL sweepstakes they're linked to via playerUserIds.
 // Pass in the full list of sweepstake docs (already fetched) to avoid extra reads.
+// Returns the start of the current football season (Jul 1) as a Date.
+// If today is before Jul 1, the season started the previous calendar year's Jul 1.
+function currentSeasonStart(){
+  const now=new Date();
+  const year=now.getMonth()>=6?now.getFullYear():now.getFullYear()-1; // getMonth() 6 = July
+  return new Date(year,6,1); // Jul 1, local time
+}
+
+// Firestore Timestamps have a toDate() method; createdAt may also be missing on old docs.
+function sweepstakeCreatedAt(sw){
+  if(!sw.createdAt)return null;
+  if(typeof sw.createdAt.toDate==="function")return sw.createdAt.toDate();
+  return new Date(sw.createdAt);
+}
+
+function filterBySeason(sweepstakes,seasonOnly){
+  if(!seasonOnly)return sweepstakes;
+  const start=currentSeasonStart();
+  return sweepstakes.filter(sw=>{
+    const created=sweepstakeCreatedAt(sw);
+    return created&&created>=start;
+  });
+}
+
 function computeUserStats(userId,allSweepstakes){
   let totalPoints=0,totalTeams=0,sweepstakeCount=0;
   allSweepstakes.forEach(sw=>{
@@ -812,43 +836,48 @@ const MIN_SWEEPSTAKES_TO_QUALIFY=2;
 function GlobalLeaderboard({user,onBack}){
   const[loading,setLoading]=useState(true);
   const[error,setError]=useState("");
-  const[rows,setRows]=useState([]);
+  const[allSweepstakes,setAllSweepstakes]=useState([]);
   const[profiles,setProfiles]=useState({}); // uid -> {displayName}
   const[search,setSearch]=useState("");
   const[showInfo,setShowInfo]=useState(false);
+  const[seasonOnly,setSeasonOnly]=useState(true); // true="This Season", false="All-Time"
 
   useEffect(()=>{
     const{db,collection,getDocs}=window._fb;
     getDocs(collection(db,"sweepstakes")).then(async snap=>{
-      const allSweepstakes=snap.docs.map(d=>({id:d.id,...d.data()})).filter(sw=>!sw.archived&&sw.status==="live");
+      const fetched=snap.docs.map(d=>({id:d.id,...d.data()})).filter(sw=>!sw.archived&&sw.status==="live");
+      setAllSweepstakes(fetched);
 
-      // Collect every distinct uid that's linked to a player name in any sweepstake
+      // Collect every distinct uid that's linked to a player name in any sweepstake,
+      // so we can fetch display names regardless of which season view is active.
       const uids=new Set();
-      allSweepstakes.forEach(sw=>{
+      fetched.forEach(sw=>{
         Object.values(sw.playerUserIds||{}).forEach(uid=>{if(uid)uids.add(uid);});
       });
-
-      const computed=[...uids].map(uid=>{
-        const stats=computeUserStats(uid,allSweepstakes);
-        return{uid,...stats};
-      }).filter(r=>r.sweepstakeCount>=MIN_SWEEPSTAKES_TO_QUALIFY);
-
-      computed.sort((a,b)=>b.pointsPerTeam-a.pointsPerTeam);
-      setRows(computed);
-
-      // Fetch display-name profiles for everyone who qualified
       const{doc,getDoc}=window._fb;
       const profileMap={};
-      await Promise.all(computed.map(async r=>{
+      await Promise.all([...uids].map(async uid=>{
         try{
-          const pSnap=await getDoc(doc(db,"users",r.uid));
-          if(pSnap.exists())profileMap[r.uid]=pSnap.data();
+          const pSnap=await getDoc(doc(db,"users",uid));
+          if(pSnap.exists())profileMap[uid]=pSnap.data();
         }catch(e){}
       }));
       setProfiles(profileMap);
       setLoading(false);
     }).catch(e=>{setError(e.message);setLoading(false);});
   },[]);
+
+  // Recompute rankings whenever the season toggle changes — no re-fetch needed
+  const scopedSweepstakes=filterBySeason(allSweepstakes,seasonOnly);
+  const uids=new Set();
+  scopedSweepstakes.forEach(sw=>{
+    Object.values(sw.playerUserIds||{}).forEach(uid=>{if(uid)uids.add(uid);});
+  });
+  const rows=[...uids].map(uid=>{
+    const stats=computeUserStats(uid,scopedSweepstakes);
+    return{uid,...stats};
+  }).filter(r=>r.sweepstakeCount>=MIN_SWEEPSTAKES_TO_QUALIFY)
+    .sort((a,b)=>b.pointsPerTeam-a.pointsPerTeam);
 
   function displayName(uid){
     const p=profiles[uid];
@@ -891,7 +920,19 @@ function GlobalLeaderboard({user,onBack}){
       </div>
 
       <div style={{maxWidth:700,margin:"0 auto",padding:"20px 20px 60px"}}>
+        <div style={{display:"flex",gap:0,marginBottom:16,background:C.pitch,borderRadius:9,padding:4,maxWidth:280}}>
+          {[{id:true,label:"This Season"},{id:false,label:"All-Time"}].map(opt=>(
+            <button key={String(opt.id)} onClick={()=>setSeasonOnly(opt.id)} style={{
+              flex:1,padding:"8px 0",borderRadius:6,border:"none",cursor:"pointer",
+              fontWeight:700,fontSize:12,letterSpacing:0.3,
+              background:seasonOnly===opt.id?C.amber:"transparent",
+              color:seasonOnly===opt.id?C.pitch:C.chalkDim,
+            }} className="mono">{opt.label}</button>
+          ))}
+        </div>
+
         <div className="mono" style={{fontSize:11,color:C.chalkDim,marginBottom:16}}>
+          {seasonOnly?`Sweepstakes created since 1 July ${currentSeasonStart().getFullYear()}. `:"All sweepstakes ever played. "}
           Ranked by points-per-team — the fairest way to compare across different sweepstakes. Requires {MIN_SWEEPSTAKES_TO_QUALIFY}+ active sweepstakes to qualify. <span onClick={()=>setShowInfo(true)} style={{color:C.amber,cursor:"pointer",textDecoration:"underline"}}>How is this scored?</span>
         </div>
 
