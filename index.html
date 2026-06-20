@@ -1580,7 +1580,7 @@ function CreateSweepstake({user,onBack,onCreated}){
             <input value={tournamentName} onChange={e=>setTournamentName(e.target.value)} placeholder="e.g. Premier League 2026/27" style={fieldInput}/>
 
             <label style={fieldLabel}>Players</label>
-            <div className="mono" style={{fontSize:11,color:C.chalkDim,marginBottom:6}}>One per line, or paste a column from Excel/Sheets — you can invite them to link their account later</div>
+            <div className="mono" style={{fontSize:11,color:C.chalkDim,marginBottom:6}}>One per line, or paste a column from Excel/Sheets — include your own name too, you'll claim it after creating</div>
             <textarea value={playersText} onChange={e=>setPlayersText(e.target.value)} rows={6}
               placeholder={"Alice\nBob\nCharlie\nDiana"}
               style={{...fieldInput,resize:"vertical",fontFamily:"'Space Mono',monospace",fontSize:13}}/>
@@ -2705,6 +2705,19 @@ function SweepstakeView({user,sweepstakeId,onBack}){
 
   const needsDraw=!sw.assignments||Object.keys(sw.assignments).length===0;
   const formatMeta=FORMATS.find(f=>f.id===sw.format);
+  const myClaimedName=Object.entries(sw.playerUserIds||{}).find(([name,uid])=>uid===user.uid)?.[0]||null;
+  const unclaimedForMe=(sw.players||[]).filter(p=>!sw.playerUserIds||!sw.playerUserIds[p]);
+  const canClaim=!myClaimedName&&unclaimedForMe.length>0;
+
+  async function claimMyName(playerName){
+    const{db,doc,updateDoc,arrayUnion}=window._fb;
+    try{
+      await updateDoc(doc(db,"sweepstakes",sweepstakeId),{
+        memberIds:arrayUnion(user.uid),
+        [`playerUserIds.${playerName}`]:user.uid,
+      });
+    }catch(e){setError(e.message);}
+  }
 
   // Determine tabs based on format
   const tabs=needsDraw?["draw"]:(()=>{
@@ -2755,6 +2768,24 @@ function SweepstakeView({user,sweepstakeId,onBack}){
       </div>
 
       <div style={{maxWidth:900,margin:"0 auto",padding:"24px 20px 60px"}}>
+        {canClaim&&(
+          <div className="fade-up" style={{
+            background:"rgba(232,185,35,0.08)",border:`1px solid ${C.amber}50`,borderRadius:10,
+            padding:"14px 16px",marginBottom:20,display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"
+          }}>
+            <div style={{flex:1,minWidth:200}}>
+              <div style={{fontWeight:700,fontSize:13,marginBottom:2}}>Which name is yours?</div>
+              <div className="mono" style={{fontSize:11,color:C.chalkDim}}>Claim your player name to see your own points and position</div>
+            </div>
+            <select onChange={e=>{if(e.target.value)claimMyName(e.target.value);}} value="" style={{
+              background:C.amber,color:C.pitch,border:"none",borderRadius:6,padding:"8px 12px",
+              fontSize:12,fontWeight:700,cursor:"pointer"
+            }}>
+              <option value="">— Select your name —</option>
+              {unclaimedForMe.map(p=><option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+        )}
         {needsDraw&&<DrawScreen sw={sw} onSave={saveDraw} saving={saving}/>}
         {!needsDraw&&activeTab==="table"&&<LeagueView sw={sw} onUpdate={updateDoc_} onBuildKnockout={buildKnockoutFromLeague}/>}
         {!needsDraw&&activeTab==="leaderboard"&&<LeaderboardView sw={sw}/>}
