@@ -400,9 +400,37 @@ function toCardData(id,sw,userId){
   };
 }
 
+// Number of teams a given player name owns in a sweepstake (assignments maps team->player)
+function teamsOwnedBy(playerName,sw){
+  return Object.values(sw.assignments||{}).filter(p=>p===playerName).length;
+}
+
+// Aggregates a single user's stats across ALL sweepstakes they're linked to via playerUserIds.
+// Pass in the full list of sweepstake docs (already fetched) to avoid extra reads.
+function computeUserStats(userId,allSweepstakes){
+  let totalPoints=0,totalTeams=0,sweepstakeCount=0;
+  allSweepstakes.forEach(sw=>{
+    const playerName=Object.entries(sw.playerUserIds||{}).find(([name,uid])=>uid===userId)?.[0];
+    if(!playerName)return;
+    const teams=teamsOwnedBy(playerName,sw);
+    if(teams===0&&sw.status==="setup")return; // not yet drawn, don't count
+    sweepstakeCount++;
+    totalTeams+=teams;
+    totalPoints+=calcPlayerPoints(playerName,sw);
+  });
+  return{
+    totalPoints,
+    totalTeams,
+    sweepstakeCount,
+    pointsPerSweepstake:sweepstakeCount>0?totalPoints/sweepstakeCount:0,
+    pointsPerTeam:totalTeams>0?totalPoints/totalTeams:0,
+  };
+}
+
 // ── DASHBOARD ─────────────────────────────────────────────────
-function Dashboard({user,onLogout,onOpenSweepstake,onCreateNew,onJoinViaInvite,onManagePresets}){
+function Dashboard({user,onLogout,onOpenSweepstake,onCreateNew,onJoinViaInvite,onManagePresets,onGlobalLeaderboard}){
   const[sweepstakes,setSweepstakes]=useState([]);
+  const[rawSweepstakes,setRawSweepstakes]=useState([]);
   const[invites,setInvites]=useState([]);
   const[loading,setLoading]=useState(true);
   const[error,setError]=useState("");
@@ -422,7 +450,9 @@ function Dashboard({user,onLogout,onOpenSweepstake,onCreateNew,onJoinViaInvite,o
     function merge(){
       const map={};
       [...owned,...member].forEach(({id,data})=>{map[id]=data;});
-      const cards=Object.entries(map).map(([id,sw])=>toCardData(id,sw,user.uid));
+      const rawList=Object.entries(map).map(([id,sw])=>({id,...sw}));
+      setRawSweepstakes(rawList);
+      const cards=rawList.map(sw=>toCardData(sw.id,sw,user.uid));
       setSweepstakes(cards);
       setLoading(false);
     }
@@ -452,6 +482,7 @@ function Dashboard({user,onLogout,onOpenSweepstake,onCreateNew,onJoinViaInvite,o
   const totalPoints=liveSweeps.reduce((sum,s)=>sum+s.myPoints,0);
   const organising=activeSweepstakes.filter(s=>s.role==="organiser").length;
   const bestPosition=liveSweeps.reduce((best,s)=>s.position&&(!best||s.position<best)?s.position:best,null);
+  const myStats=computeUserStats(user.uid,rawSweepstakes.filter(sw=>!sw.archived&&sw.status==="live"));
 
   async function acceptInvite(invite){
     const{db,doc,updateDoc}=window._fb;
@@ -490,6 +521,7 @@ function Dashboard({user,onLogout,onOpenSweepstake,onCreateNew,onJoinViaInvite,o
             SWEEP<span style={{color:C.amber}}>R</span>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <button onClick={onGlobalLeaderboard} className="mono" style={{background:"transparent",border:`1px solid ${C.pitchBorder}`,color:C.chalkDim,borderRadius:6,padding:"6px 12px",fontSize:11,cursor:"pointer",letterSpacing:1}}>🌍 GLOBAL</button>
             {user.uid===ADMIN_UID&&(
               <button onClick={onManagePresets} className="mono" style={{background:"transparent",border:`1px solid ${C.amber}60`,color:C.amber,borderRadius:6,padding:"6px 12px",fontSize:11,cursor:"pointer",letterSpacing:1}}>⚙ PRESETS</button>
             )}
@@ -513,6 +545,8 @@ function Dashboard({user,onLogout,onOpenSweepstake,onCreateNew,onJoinViaInvite,o
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:32}}>
           <StatBlock label="Active Sweepstakes" value={liveSweeps.length} suffix=""/>
           <StatBlock label="Total Points" value={totalPoints} suffix="PTS" accent/>
+          <StatBlock label="Pts / Sweepstake" value={myStats.pointsPerSweepstake.toFixed(1)} suffix=""/>
+          <StatBlock label="Pts / Team" value={myStats.pointsPerTeam.toFixed(1)} suffix=""/>
           <StatBlock label="Best Position" value={bestPosition?`#${bestPosition}`:"—"} suffix=""/>
           <StatBlock label="Organising" value={organising} suffix=""/>
         </div>
@@ -648,6 +682,98 @@ function teamCountHint(format){
 
 // ── CREATE SWEEPSTAKE SCREEN ─────────────────────────────────
 // ── MANAGE PRESETS (admin only) ───────────────────────────────
+// ── GLOBAL LEADERBOARD ────────────────────────────────────────
+const MIN_SWEEPSTAKES_TO_QUALIFY=2;
+
+function GlobalLeaderboard({user,onBack}){
+  const[loading,setLoading]=useState(true);
+  const[error,setError]=useState("");
+  const[rows,setRows]=useState([]);
+  const[search,setSearch]=useState("");
+
+  useEffect(()=>{
+    const{db,collection,getDocs}=window._fb;
+    getDocs(collection(db,"sweepstakes")).then(snap=>{
+      const allSweepstakes=snap.docs.map(d=>({id:d.id,...d.data()})).filter(sw=>!sw.archived&&sw.status==="live");
+
+      // Collect every distinct uid that's linked to a player name in any sweepstake
+      const uids=new Set();
+      allSweepstakes.forEach(sw=>{
+        Object.values(sw.playerUserIds||{}).forEach(uid=>{if(uid)uids.add(uid);});
+      });
+
+      const computed=[...uids].map(uid=>{
+        const stats=computeUserStats(uid,allSweepstakes);
+        return{uid,...stats};
+      }).filter(r=>r.sweepstakeCount>=MIN_SWEEPSTAKES_TO_QUALIFY);
+
+      computed.sort((a,b)=>b.pointsPerTeam-a.pointsPerTeam);
+      setRows(computed);
+      setLoading(false);
+    }).catch(e=>{setError(e.message);setLoading(false);});
+  },[]);
+
+  function displayName(uid){
+    if(uid===user.uid)return user.email?user.email.split("@")[0]:"You";
+    return uid.slice(0,6); // no public profile/email lookup available — short uid as a stable, privacy-friendly handle
+  }
+
+  const filtered=rows.filter(r=>!search||displayName(r.uid).toLowerCase().includes(search.toLowerCase()));
+
+  return(
+    <div style={{minHeight:"100vh"}}>
+      <div style={{borderBottom:`1px solid ${C.pitchBorder}`,padding:"0 20px"}}>
+        <div style={{maxWidth:700,margin:"0 auto",display:"flex",alignItems:"center",gap:14,padding:"18px 0"}}>
+          <button onClick={onBack} style={{background:"transparent",border:`1px solid ${C.pitchBorder}`,color:C.chalkDim,borderRadius:6,width:34,height:34,cursor:"pointer",fontSize:16}}>←</button>
+          <div className="display" style={{fontSize:20}}>GLOBAL LEADERBOARD</div>
+        </div>
+      </div>
+
+      <div style={{maxWidth:700,margin:"0 auto",padding:"28px 20px 60px"}}>
+        <div className="mono" style={{fontSize:12,color:C.chalkDim,marginBottom:20}}>
+          Ranked by points-per-team — the fairest way to compare across different sweepstakes. Requires {MIN_SWEEPSTAKES_TO_QUALIFY}+ active sweepstakes to qualify.
+        </div>
+
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..."
+          style={{...fieldInput,marginBottom:20}}/>
+
+        {error&&<div style={{color:C.red,fontSize:12,marginBottom:16,fontWeight:600}} className="mono">⚠ {error}</div>}
+
+        {loading?(
+          <div className="mono" style={{color:C.chalkDim,fontSize:12}}>Loading...</div>
+        ):filtered.length===0?(
+          <div className="mono" style={{color:C.chalkDim,fontSize:12}}>
+            {rows.length===0?`No one qualifies yet — need ${MIN_SWEEPSTAKES_TO_QUALIFY}+ active sweepstakes each.`:"No matches."}
+          </div>
+        ):(
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {filtered.map((r,i)=>{
+              const rank=rows.indexOf(r)+1;
+              const isMe=r.uid===user.uid;
+              return(
+                <div key={r.uid} className="ticket" style={{
+                  display:"flex",alignItems:"center",padding:"12px 16px",gap:12,
+                  border:isMe?`1px solid ${C.amber}`:undefined
+                }}>
+                  <div className="display" style={{fontSize:18,color:rank<=3?C.amber:C.chalkDim,width:32}}>#{rank}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:14}}>{displayName(r.uid)}{isMe&&<span className="mono" style={{fontSize:10,color:C.amber,marginLeft:6}}>YOU</span>}</div>
+                    <div className="mono" style={{fontSize:11,color:C.chalkDim}}>{r.sweepstakeCount} sweepstakes · {r.totalTeams} teams</div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div className="display" style={{fontSize:18,color:C.amber}}>{r.pointsPerTeam.toFixed(1)}</div>
+                    <div className="mono" style={{fontSize:9,color:C.chalkDim}}>PTS/TEAM</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ManagePresets({user,onBack}){
   const[presets,setPresets]=useState([]);
   const[loading,setLoading]=useState(true);
@@ -2542,6 +2668,10 @@ function App(){
     return <ManagePresets user={user} onBack={()=>setScreen("dashboard")}/>;
   }
 
+  if(screen==="leaderboard"){
+    return <GlobalLeaderboard user={user} onBack={()=>setScreen("dashboard")}/>;
+  }
+
   return(
     <Dashboard
       user={user}
@@ -2550,6 +2680,7 @@ function App(){
       onCreateNew={()=>setScreen("create")}
       onJoinViaInvite={(swId)=>setInviteId(swId)}
       onManagePresets={()=>setScreen("presets")}
+      onGlobalLeaderboard={()=>setScreen("leaderboard")}
     />
   );
 }
