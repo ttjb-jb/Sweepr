@@ -800,7 +800,7 @@ function CreateSweepstake({user,onBack,onCreated}){
         drawStyle:(format==="knockout"||format==="league_knockout")?drawStyle:null,
         leaguePhaseType:format==="league_knockout"?leaguePhaseType:null,
         swissFixtures:swissFixtures,
-        presetFixtures:(preset&&preset.fixtures)?preset.fixtures:null, // [date,home,away][] — used to seed real fixtures at draw time
+        presetFixtures:(preset&&preset.fixtures)?preset.fixtures.map(([date,home,away])=>({date,home,away})):null, // Firestore can't store nested arrays — flatten to objects
         directQualifiers:format==="league_knockout"?directQualifiers:null,
         playoffSpots:format==="league_knockout"?playoffSpots:null,
         matches:{},
@@ -1964,7 +1964,7 @@ function SweepstakeView({user,sweepstakeId,onBack}){
     if((sw.format==="league"||sw.format==="league_knockout")&&!(sw.fixtures&&sw.fixtures.length)){
       if(sw.presetFixtures&&sw.presetFixtures.length){
         // Real fixture list with dates (e.g. Premier League official schedule)
-        patch.fixtures=sw.presetFixtures.map(([date,home,away],i)=>({
+        patch.fixtures=sw.presetFixtures.map(({date,home,away},i)=>({
           id:`preset_${i}_${home}_${away}`,
           date,home,away,homeScore:"",awayScore:"",played:false
         }));
