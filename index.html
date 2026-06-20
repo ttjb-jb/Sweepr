@@ -2048,15 +2048,6 @@ function LeagueView({sw,onUpdate,onBuildKnockout}){
   const allPlayed=fixtures.length>0&&fixtures.every(f=>f.played);
 
   function playerFor(team){return assignments[team]||null;}
-  async function fillAllRandom(){
-    const next=fixtures.map(f=>f.played?f:{
-      ...f,
-      homeScore:String(Math.floor(Math.random()*5)),
-      awayScore:String(Math.floor(Math.random()*5)),
-      played:true,
-    });
-    await onUpdate({fixtures:next});
-  }
   function playerColor(name){
     const idx=players.indexOf(name);
     const palette=["#e8b923","#5fb3e8","#e85f5f","#5fe88a","#c25fe8","#e88a5f"];
@@ -2089,18 +2080,13 @@ function LeagueView({sw,onUpdate,onBuildKnockout}){
 
   return(
     <div className="fade-up">
-      <div style={{display:"flex",gap:10,marginBottom:20,flexWrap:"wrap"}}>
-        {sw.format==="league_knockout"&&!sw.knockout&&(
+      {sw.format==="league_knockout"&&!sw.knockout&&(
+        <div style={{marginBottom:20}}>
           <button onClick={onBuildKnockout} disabled={!allPlayed} style={{...pillBtn,background:AMBER_GRADIENT,color:C.pitch,opacity:allPlayed?1:0.6}}>
             🏆 Build Knockout Bracket {allPlayed?"":`(${fixtures.filter(f=>!f.played).length} fixtures remaining)`}
           </button>
-        )}
-        {!allPlayed&&(
-          <button onClick={fillAllRandom} style={{...pillBtn,border:`1px dashed ${C.chalkDim}`,color:C.chalkDim}}>
-            🎲 Fill All Remaining (Test)
-          </button>
-        )}
-      </div>
+        </div>
+      )}
       {/* League table */}
       <SectionLabel>League Table</SectionLabel>
       <div style={{background:C.pitchLight,border:`1px solid ${C.pitchBorder}`,borderRadius:10,overflow:"hidden",marginBottom:28}}>
@@ -2232,33 +2218,15 @@ function GroupsView({sw,onUpdate,onBuildKnockout}){
 
   const allPlayed=Object.values(matches).every(gm=>gm.every(m=>m.played));
 
-  async function fillAllRandom(){
-    const next={};
-    Object.entries(matches).forEach(([g,gm])=>{
-      next[g]=gm.map(m=>m.played?m:{
-        ...m,
-        homeScore:String(Math.floor(Math.random()*5)),
-        awayScore:String(Math.floor(Math.random()*5)),
-        played:true,
-      });
-    });
-    await onUpdate({matches:next});
-  }
-
   return(
     <div className="fade-up">
-      <div style={{display:"flex",gap:10,marginBottom:20,flexWrap:"wrap"}}>
-        {!sw.knockout&&(
+      {!sw.knockout&&(
+        <div style={{marginBottom:20}}>
           <button onClick={onBuildKnockout} style={{...pillBtn,background:AMBER_GRADIENT,color:C.pitch,opacity:allPlayed?1:0.6}}>
             🏆 Build Knockout Bracket {allPlayed?"":"(finish all group matches first)"}
           </button>
-        )}
-        {!allPlayed&&(
-          <button onClick={fillAllRandom} style={{...pillBtn,border:`1px dashed ${C.chalkDim}`,color:C.chalkDim}}>
-            🎲 Fill All Remaining (Test)
-          </button>
-        )}
-      </div>
+        </div>
+      )}
       {Object.entries(groups).sort(([a],[b])=>a.localeCompare(b)).map(([g,teams])=>(
         <div key={g} style={{marginBottom:28}}>
           <SectionLabel>Group {g}</SectionLabel>
