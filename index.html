@@ -725,6 +725,21 @@ const PL_2026_27_TEAMS=["Arsenal","Aston Villa","AFC Bournemouth","Brentford","B
 
 // One-time seed data — used by the admin Manage Presets screen to populate Firestore.
 // After seeding, the live app reads presets from Firestore, not from this constant.
+const WC_2026_GROUPS={
+  A:["Czechia","Mexico","South Africa","South Korea"],
+  B:["Bosnia-Herzegovina","Canada","Qatar","Switzerland"],
+  C:["Brazil","Haiti","Morocco","Scotland"],
+  D:["Australia","Paraguay","Turkey","United States"],
+  E:["Curacao","Ecuador","Germany","Ivory Coast"],
+  F:["Japan","Netherlands","Sweden","Tunisia"],
+  G:["Belgium","Egypt","Iran","New Zealand"],
+  H:["Cape Verde","Saudi Arabia","Spain","Uruguay"],
+  I:["France","Iraq","Norway","Senegal"],
+  J:["Algeria","Argentina","Austria","Jordan"],
+  K:["Colombia","Congo DR","Portugal","Uzbekistan"],
+  L:["Croatia","England","Ghana","Panama"],
+};
+
 const SEED_PRESETS=[
   {
     id:"pl_2026_27",
@@ -734,6 +749,17 @@ const SEED_PRESETS=[
     teams:PL_2026_27_TEAMS,
     fixtures:PL_2026_27_FIXTURES.map(([date,home,away])=>({date,home,away})),
     desc:"All 20 clubs, real fixture list with dates — released 19 June 2026",
+    archived:false,
+  },
+  {
+    id:"wc_2026",
+    name:"FIFA World Cup 2026",
+    icon:"🌍",
+    format:"groups_knockout",
+    teams:Object.values(WC_2026_GROUPS).flat(),
+    groups:WC_2026_GROUPS,
+    fixtures:[],
+    desc:"All 48 teams across 12 groups — for testing/reference, tournament already underway (started 11 June 2026)",
     archived:false,
   },
 ];
@@ -1038,6 +1064,9 @@ function PresetEditor({preset,onSaved,onCancel}){
   const[format,setFormat]=useState(preset?.format||"league");
   const[desc,setDesc]=useState(preset?.desc||"");
   const[teamsText,setTeamsText]=useState((preset?.teams||[]).join("\n"));
+  const[groupsText,setGroupsText]=useState(
+    preset?.groups?Object.entries(preset.groups).sort(([a],[b])=>a.localeCompare(b)).map(([g,teams])=>`${g}: ${teams.join(", ")}`).join("\n"):""
+  );
   const[fixturesText,setFixturesText]=useState(
     (preset?.fixtures||[]).map(f=>f.date?`${f.date} | ${f.home} vs ${f.away}`:`${f.home} vs ${f.away}`).join("\n")
   );
@@ -1046,6 +1075,19 @@ function PresetEditor({preset,onSaved,onCancel}){
 
   function parseTeams(text){
     return text.split(/[\n\r\t,]+/).map(s=>s.trim()).filter(Boolean);
+  }
+
+  // Parses "A: Team1, Team2, Team3, Team4" lines into {A:[...],B:[...]}
+  function parseGroups(text){
+    const groups={};
+    text.split("\n").forEach(line=>{
+      const idx=line.indexOf(":");
+      if(idx===-1)return;
+      const key=line.slice(0,idx).trim();
+      const teams=line.slice(idx+1).split(",").map(t=>t.trim()).filter(Boolean);
+      if(key&&teams.length)groups[key]=teams;
+    });
+    return groups;
   }
 
   // Parses "Date | Team A vs Team B" or just "Team A vs Team B" (no date) per line
@@ -1071,10 +1113,16 @@ function PresetEditor({preset,onSaved,onCancel}){
   async function handleSave(e){
     e.preventDefault();
     setError("");
-    const teams=parseTeams(teamsText);
+    const isGroups=format==="groups_knockout";
+    const groups=isGroups?parseGroups(groupsText):null;
+    const teams=isGroups?Object.values(groups||{}).flat():parseTeams(teamsText);
     const fixtures=parseFixtures(fixturesText);
     if(!name.trim()){setError("Name is required");return;}
-    if(teams.length===0){setError("Add at least one team");return;}
+    if(isGroups){
+      if(!groups||Object.keys(groups).length===0){setError("Add at least one group (e.g. A: Team1, Team2, Team3, Team4)");return;}
+    }else if(teams.length===0){
+      setError("Add at least one team");return;
+    }
     const docId=isNew?(id.trim()||name.trim().toLowerCase().replace(/[^a-z0-9]+/g,"_")):preset.id;
 
     setSaving(true);
@@ -1085,6 +1133,7 @@ function PresetEditor({preset,onSaved,onCancel}){
         icon:icon.trim()||"🏆",
         format,
         teams,
+        groups:groups||null,
         fixtures,
         desc:desc.trim(),
         archived:preset?.archived||false,
@@ -1127,11 +1176,31 @@ function PresetEditor({preset,onSaved,onCancel}){
           <label style={{...fieldLabel,marginTop:14}}>Description</label>
           <input value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Short description shown to organisers" style={fieldInput}/>
 
-          <label style={{...fieldLabel,marginTop:14}}>Teams</label>
-          <div className="mono" style={{fontSize:11,color:C.chalkDim,marginBottom:6}}>One per line, or paste a column from Excel/Sheets</div>
-          <textarea value={teamsText} onChange={e=>setTeamsText(e.target.value)} rows={8}
-            style={{...fieldInput,resize:"vertical",fontFamily:"'Space Mono',monospace",fontSize:13}}/>
-          {teamsText.trim()&&<div className="mono" style={{fontSize:11,color:C.amber,marginTop:6}}>{parseTeams(teamsText).length} teams</div>}
+          {format==="groups_knockout"?(
+            <>
+              <label style={{...fieldLabel,marginTop:14}}>Groups & Teams</label>
+              <div className="mono" style={{fontSize:11,color:C.chalkDim,marginBottom:6}}>
+                One group per line: <code style={{background:C.pitch,padding:"1px 5px",borderRadius:3}}>A: Team1, Team2, Team3, Team4</code>
+              </div>
+              <textarea value={groupsText} onChange={e=>setGroupsText(e.target.value)} rows={14}
+                placeholder={"A: Czechia, Mexico, South Africa, South Korea\nB: Bosnia-Herzegovina, Canada, Qatar, Switzerland\n..."}
+                style={{...fieldInput,resize:"vertical",fontFamily:"'Space Mono',monospace",fontSize:13}}/>
+              {groupsText.trim()&&(()=>{
+                const groups=parseGroups(groupsText);
+                const groupCount=Object.keys(groups).length;
+                const teamCount=Object.values(groups).flat().length;
+                return <div className="mono" style={{fontSize:11,color:C.amber,marginTop:6}}>{groupCount} groups · {teamCount} teams</div>;
+              })()}
+            </>
+          ):(
+            <>
+              <label style={{...fieldLabel,marginTop:14}}>Teams</label>
+              <div className="mono" style={{fontSize:11,color:C.chalkDim,marginBottom:6}}>One per line, or paste a column from Excel/Sheets</div>
+              <textarea value={teamsText} onChange={e=>setTeamsText(e.target.value)} rows={8}
+                style={{...fieldInput,resize:"vertical",fontFamily:"'Space Mono',monospace",fontSize:13}}/>
+              {teamsText.trim()&&<div className="mono" style={{fontSize:11,color:C.amber,marginTop:6}}>{parseTeams(teamsText).length} teams</div>}
+            </>
+          )}
 
           <label style={{...fieldLabel,marginTop:14}}>Fixtures (optional)</label>
           <div className="mono" style={{fontSize:11,color:C.chalkDim,marginBottom:6}}>
@@ -1257,7 +1326,12 @@ function CreateSweepstake({user,onBack,onCreated}){
     setFormat(p.format);
     setName(p.name);
     setTournamentName(p.name);
-    setTeamsText(p.teams.join("\n"));
+    if(p.format==="groups_knockout"&&p.groups){
+      const text=Object.entries(p.groups).sort(([a],[b])=>a.localeCompare(b)).map(([g,teams])=>`${g}: ${teams.join(", ")}`).join("\n");
+      setGroupsText(text);
+    }else{
+      setTeamsText((p.teams||[]).join("\n"));
+    }
     setStep("details");
   }
 
@@ -1526,24 +1600,37 @@ function CreateSweepstake({user,onBack,onCreated}){
             {format==="groups_knockout"?(
               <>
                 <label style={{...fieldLabel,marginTop:14}}>Groups & Teams</label>
-                <div className="mono" style={{fontSize:11,color:C.chalkDim,marginBottom:6}}>
-                  One group per line: <code style={{background:C.pitch,padding:"1px 5px",borderRadius:3}}>A: Team1, Team2, Team3, Team4</code> — all groups should be the same size
-                </div>
-                <textarea value={groupsText} onChange={e=>setGroupsText(e.target.value)} rows={10}
-                  placeholder={"A: Arsenal, Aston Villa, Bournemouth, Brentford\nB: Brighton, Burnley, Chelsea, Crystal Palace\nC: ..."}
-                  style={{...fieldInput,resize:"vertical",fontFamily:"'Space Mono',monospace",fontSize:13}}/>
-                {groupsText.trim()&&(()=>{
-                  const groups=parseGroups(groupsText);
-                  const groupCount=Object.keys(groups).length;
-                  const teamCount=Object.values(groups).flat().length;
-                  const sizes=new Set(Object.values(groups).map(g=>g.length));
-                  return(
-                    <div className="mono" style={{fontSize:11,color:sizes.size>1?C.red:C.amber,marginTop:6}}>
-                      {groupCount} groups · {teamCount} teams
-                      {sizes.size>1?" — group sizes don't match!":` · ${[...sizes][0]} per group`}
+                {preset?(
+                  <div style={{background:C.pitch,border:`1px solid ${C.amber}50`,borderRadius:8,padding:"12px 14px"}}>
+                    <div className="mono" style={{fontSize:12,color:C.amber,fontWeight:700,marginBottom:6}}>✓ {Object.keys(preset.groups||{}).length} groups pre-loaded from {preset.name}</div>
+                    <div className="mono" style={{fontSize:11,color:C.chalkDim,lineHeight:1.8}}>
+                      {Object.entries(preset.groups||{}).sort(([a],[b])=>a.localeCompare(b)).map(([g,teams])=>(
+                        <div key={g}><strong style={{color:C.chalk}}>{g}:</strong> {teams.join(", ")}</div>
+                      ))}
                     </div>
-                  );
-                })()}
+                  </div>
+                ):(
+                  <>
+                    <div className="mono" style={{fontSize:11,color:C.chalkDim,marginBottom:6}}>
+                      One group per line: <code style={{background:C.pitch,padding:"1px 5px",borderRadius:3}}>A: Team1, Team2, Team3, Team4</code> — all groups should be the same size
+                    </div>
+                    <textarea value={groupsText} onChange={e=>setGroupsText(e.target.value)} rows={10}
+                      placeholder={"A: Arsenal, Aston Villa, Bournemouth, Brentford\nB: Brighton, Burnley, Chelsea, Crystal Palace\nC: ..."}
+                      style={{...fieldInput,resize:"vertical",fontFamily:"'Space Mono',monospace",fontSize:13}}/>
+                    {groupsText.trim()&&(()=>{
+                      const groups=parseGroups(groupsText);
+                      const groupCount=Object.keys(groups).length;
+                      const teamCount=Object.values(groups).flat().length;
+                      const sizes=new Set(Object.values(groups).map(g=>g.length));
+                      return(
+                        <div className="mono" style={{fontSize:11,color:sizes.size>1?C.red:C.amber,marginTop:6}}>
+                          {groupCount} groups · {teamCount} teams
+                          {sizes.size>1?" — group sizes don't match!":` · ${[...sizes][0]} per group`}
+                        </div>
+                      );
+                    })()}
+                  </>
+                )}
               </>
             ):(
               <>
