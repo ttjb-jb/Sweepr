@@ -972,7 +972,7 @@ function CreateSweepstake({user,onBack,onCreated}){
                       {teamCount} teams detected
                       {playerCount>0&&(divides
                         ?` · ${teamCount/playerCount} per player — divides evenly ✓`
-                        :` · won't divide evenly across ${playerCount} players — manual assignment will be needed`
+                        :` · won't divide evenly across ${playerCount} players — you'll choose how to split it at the draw`
                       )}
                     </div>
                   );
@@ -1173,15 +1173,18 @@ function buildQualifiers(groups,standings){
 function DrawScreen({sw,onSave,saving}){
   const{players=[],teams=[]}=sw;
   const[assignments,setAssignments]=useState(sw.assignments||{});
+  const[drawMode,setDrawMode]=useState("even"); // "even" | "one_each"
 
-  const teamsPerPlayer=Math.floor(teams.length/players.length);
-  const unassignedCount=teams.length-Object.keys(assignments).length;
+  const evenPerPlayer=Math.floor(teams.length/players.length);
+  const teamsPerPlayer=drawMode==="one_each"?1:evenPerPlayer;
+  const teamsInPlay=teamsPerPlayer*players.length;
+  const sittingOutCount=teams.length-teamsInPlay;
 
   function randomDraw(){
     const shuffled=shuffle(teams);
     const next={};
     shuffled.forEach((t,i)=>{
-      const pi=i<players.length*teamsPerPlayer?i%players.length:-1;
+      const pi=i<teamsInPlay?i%players.length:-1;
       if(pi>=0)next[t]=players[pi];
     });
     setAssignments(next);
@@ -1199,13 +1202,43 @@ function DrawScreen({sw,onSave,saving}){
   function clearAll(){setAssignments({});}
 
   const ready=Object.keys(assignments).length>0;
+  const assignedTeams=teams.filter(t=>assignments[t]);
+  const sittingOutTeams=teams.filter(t=>!assignments[t]);
 
   return(
     <div className="fade-up">
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:14,flexWrap:"wrap",gap:10}}>
         <SectionLabel noMargin>The Draw</SectionLabel>
         <div className="mono" style={{fontSize:11,color:C.chalkDim}}>
-          {teams.length} teams · {players.length} players · {teamsPerPlayer>0?`${teamsPerPlayer} per player`:"uneven split"}
+          {teams.length} teams · {players.length} players
+        </div>
+      </div>
+
+      <div style={{marginBottom:16}}>
+        <div className="mono" style={{fontSize:11,color:C.chalkDim,marginBottom:6,letterSpacing:1,textTransform:"uppercase"}}>Draw Mode</div>
+        <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+          <div onClick={()=>setDrawMode("even")} style={{
+            flex:"1 1 200px",cursor:"pointer",borderRadius:8,padding:"12px 14px",
+            border:`1px solid ${drawMode==="even"?C.amber:C.pitchBorder}`,
+            background:drawMode==="even"?"rgba(232,185,35,0.08)":C.pitchLight,
+          }}>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:3,color:drawMode==="even"?C.amber:C.chalk}}>Distribute Evenly</div>
+            <div className="mono" style={{fontSize:11,color:C.chalkDim}}>
+              {evenPerPlayer>0?`${evenPerPlayer} team${evenPerPlayer===1?"":"s"} per player`:"Not enough teams for every player"}
+              {teams.length%players.length!==0&&evenPerPlayer>0&&` · ${teams.length%players.length} sitting out`}
+            </div>
+          </div>
+          <div onClick={()=>setDrawMode("one_each")} style={{
+            flex:"1 1 200px",cursor:"pointer",borderRadius:8,padding:"12px 14px",
+            border:`1px solid ${drawMode==="one_each"?C.amber:C.pitchBorder}`,
+            background:drawMode==="one_each"?"rgba(232,185,35,0.08)":C.pitchLight,
+          }}>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:3,color:drawMode==="one_each"?C.amber:C.chalk}}>One Team Per Player</div>
+            <div className="mono" style={{fontSize:11,color:C.chalkDim}}>
+              {players.length} team{players.length===1?"":"s"} in play
+              {teams.length>players.length&&` · ${teams.length-players.length} sitting out`}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1219,6 +1252,12 @@ function DrawScreen({sw,onSave,saving}){
         )}
       </div>
 
+      {sittingOutCount>0&&drawMode&&(
+        <div className="mono" style={{fontSize:11,color:C.chalkDim,marginBottom:16,padding:"8px 12px",background:C.pitchLight,borderRadius:6,border:`1px solid ${C.pitchBorder}`}}>
+          ℹ️ {sittingOutCount} team{sittingOutCount===1?"":"s"} will sit out unallocated — still tracked in the table/bracket, just not owned by anyone
+        </div>
+      )}
+
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14}}>
         {teams.map(team=>{
           const assigned=assignments[team]||"";
@@ -1229,7 +1268,7 @@ function DrawScreen({sw,onSave,saving}){
                 background:assigned?C.amber:C.pitch,color:assigned?C.pitch:C.chalkDim,
                 border:`1px solid ${C.pitchBorder}`,borderRadius:6,padding:"6px 10px",fontSize:12,fontWeight:700,cursor:"pointer"
               }}>
-                <option value="">— Unassigned</option>
+                <option value="">— Sitting Out</option>
                 {players.map(p=><option key={p} value={p}>{p}</option>)}
               </select>
             </div>
