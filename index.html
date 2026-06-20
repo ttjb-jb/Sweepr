@@ -2130,7 +2130,7 @@ function App(){
   const[screen,setScreen]=useState("dashboard");
   const[openSweepstakeId,setOpenSweepstakeId]=useState(null);
   const[authError,setAuthError]=useState("");
-  const[inviteId]=useState(()=>{
+  const[inviteId,setInviteId]=useState(()=>{
     try{
       return new URLSearchParams(window.location.search).get("invite");
     }catch(e){return null;}
@@ -2201,8 +2201,9 @@ function App(){
 
   if(inviteId){
     return <JoinSweepstake user={user} inviteId={inviteId} onDone={(swId)=>{
-      // Clear the invite param from the URL so refreshing doesn't re-trigger it
+      // Clear the invite param from the URL and from state, so we don't loop back here
       window.history.replaceState({},"",window.location.pathname);
+      setInviteId(null);
       if(swId){setOpenSweepstakeId(swId);setScreen("view");}
       else setScreen("dashboard");
     }}/>;
