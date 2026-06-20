@@ -428,6 +428,59 @@ function computeUserStats(userId,allSweepstakes){
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────
+// ── DISPLAY NAME PROMPT ───────────────────────────────────────
+function DisplayNamePrompt({user,onDone}){
+  const[name,setName]=useState("");
+  const[saving,setSaving]=useState(false);
+  const[error,setError]=useState("");
+
+  async function save(e){
+    e.preventDefault();
+    if(!name.trim()){setError("Enter a name, or skip for now");return;}
+    setSaving(true);setError("");
+    try{
+      const{db,doc,setDoc}=window._fb;
+      await setDoc(doc(db,"users",user.uid),{displayName:name.trim(),promptSeen:true},{merge:true});
+      onDone();
+    }catch(e){setError(e.message);}
+    finally{setSaving(false);}
+  }
+
+  async function skip(){
+    try{
+      const{db,doc,setDoc}=window._fb;
+      await setDoc(doc(db,"users",user.uid),{promptSeen:true},{merge:true});
+    }catch(e){/* non-fatal, just close */}
+    onDone();
+  }
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:60,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div className="fade-up" style={{background:C.pitchLight,border:`1px solid ${C.pitchBorder}`,borderRadius:14,padding:28,width:"100%",maxWidth:380}}>
+        <div style={{textAlign:"center",marginBottom:18}}>
+          <div style={{fontSize:32,marginBottom:8}}>👋</div>
+          <div className="display" style={{fontSize:18,marginBottom:6}}>Pick a Display Name</div>
+          <div className="mono" style={{fontSize:12,color:C.chalkDim,lineHeight:1.5}}>
+            This is shown on the public Global Leaderboard instead of your email — your email is never shown to other users.
+          </div>
+        </div>
+        <form onSubmit={save}>
+          <input value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. JordanB" autoFocus style={fieldInput}/>
+          {error&&<div style={{color:C.red,fontSize:12,marginTop:8,fontWeight:600}}>{error}</div>}
+          <button type="submit" disabled={saving} style={{
+            width:"100%",marginTop:16,padding:"12px 0",borderRadius:8,border:"none",
+            background:AMBER_GRADIENT,color:C.pitch,fontWeight:800,fontSize:14,cursor:saving?"default":"pointer",opacity:saving?0.7:1
+          }}>{saving?"Saving...":"Save"}</button>
+          <button type="button" onClick={skip} style={{
+            width:"100%",marginTop:8,padding:"10px 0",borderRadius:8,border:"none",
+            background:"transparent",color:C.chalkDim,fontSize:12,cursor:"pointer"
+          }} className="mono">Skip for now</button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function Dashboard({user,onLogout,onOpenSweepstake,onCreateNew,onJoinViaInvite,onManagePresets,onGlobalLeaderboard}){
   const[sweepstakes,setSweepstakes]=useState([]);
   const[rawSweepstakes,setRawSweepstakes]=useState([]);
@@ -435,6 +488,18 @@ function Dashboard({user,onLogout,onOpenSweepstake,onCreateNew,onJoinViaInvite,o
   const[loading,setLoading]=useState(true);
   const[error,setError]=useState("");
   const[showArchived,setShowArchived]=useState(false);
+  const[showNamePrompt,setShowNamePrompt]=useState(false);
+  const[myProfile,setMyProfile]=useState(null);
+
+  useEffect(()=>{
+    if(!user)return;
+    const{db,doc,getDoc}=window._fb;
+    getDoc(doc(db,"users",user.uid)).then(snap=>{
+      const profile=snap.exists()?snap.data():null;
+      setMyProfile(profile);
+      if(!profile||!profile.promptSeen)setShowNamePrompt(true);
+    }).catch(()=>{});
+  },[user]);
 
   useEffect(()=>{
     if(!user)return;
@@ -525,9 +590,12 @@ function Dashboard({user,onLogout,onOpenSweepstake,onCreateNew,onJoinViaInvite,o
             {user.uid===ADMIN_UID&&(
               <button onClick={onManagePresets} className="mono" style={{background:"transparent",border:`1px solid ${C.amber}60`,color:C.amber,borderRadius:6,padding:"6px 12px",fontSize:11,cursor:"pointer",letterSpacing:1}}>⚙ PRESETS</button>
             )}
-            <div style={{width:32,height:32,borderRadius:"50%",background:AMBER_GRADIENT,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,color:C.pitch,fontSize:13}}>
-              {(user.email||"?")[0].toUpperCase()}
-            </div>
+            <button onClick={()=>setShowNamePrompt(true)} title="Edit display name" style={{
+              width:32,height:32,borderRadius:"50%",background:AMBER_GRADIENT,display:"flex",alignItems:"center",
+              justifyContent:"center",fontWeight:800,color:C.pitch,fontSize:13,border:"none",cursor:"pointer"
+            }}>
+              {((myProfile&&myProfile.displayName)||user.email||"?")[0].toUpperCase()}
+            </button>
             <button onClick={onLogout} className="mono" style={{background:"transparent",border:`1px solid ${C.pitchBorder}`,color:C.chalkDim,borderRadius:6,padding:"6px 12px",fontSize:11,cursor:"pointer",letterSpacing:1}}>LOG OUT</button>
           </div>
         </div>
@@ -607,6 +675,13 @@ function Dashboard({user,onLogout,onOpenSweepstake,onCreateNew,onJoinViaInvite,o
           </div>
         )}
       </div>
+      {showNamePrompt&&(
+        <DisplayNamePrompt user={user} onDone={()=>{
+          setShowNamePrompt(false);
+          const{db,doc,getDoc}=window._fb;
+          getDoc(doc(db,"users",user.uid)).then(snap=>{if(snap.exists())setMyProfile(snap.data());}).catch(()=>{});
+        }}/>
+      )}
     </div>
   );
 }
@@ -689,11 +764,13 @@ function GlobalLeaderboard({user,onBack}){
   const[loading,setLoading]=useState(true);
   const[error,setError]=useState("");
   const[rows,setRows]=useState([]);
+  const[profiles,setProfiles]=useState({}); // uid -> {displayName}
   const[search,setSearch]=useState("");
+  const[showInfo,setShowInfo]=useState(false);
 
   useEffect(()=>{
     const{db,collection,getDocs}=window._fb;
-    getDocs(collection(db,"sweepstakes")).then(snap=>{
+    getDocs(collection(db,"sweepstakes")).then(async snap=>{
       const allSweepstakes=snap.docs.map(d=>({id:d.id,...d.data()})).filter(sw=>!sw.archived&&sw.status==="live");
 
       // Collect every distinct uid that's linked to a player name in any sweepstake
@@ -709,32 +786,67 @@ function GlobalLeaderboard({user,onBack}){
 
       computed.sort((a,b)=>b.pointsPerTeam-a.pointsPerTeam);
       setRows(computed);
+
+      // Fetch display-name profiles for everyone who qualified
+      const{doc,getDoc}=window._fb;
+      const profileMap={};
+      await Promise.all(computed.map(async r=>{
+        try{
+          const pSnap=await getDoc(doc(db,"users",r.uid));
+          if(pSnap.exists())profileMap[r.uid]=pSnap.data();
+        }catch(e){}
+      }));
+      setProfiles(profileMap);
       setLoading(false);
     }).catch(e=>{setError(e.message);setLoading(false);});
   },[]);
 
   function displayName(uid){
-    if(uid===user.uid)return user.email?user.email.split("@")[0]:"You";
-    return uid.slice(0,6); // no public profile/email lookup available — short uid as a stable, privacy-friendly handle
+    const p=profiles[uid];
+    if(p&&p.displayName)return p.displayName;
+    if(uid===user.uid)return "You";
+    return `Player ${uid.slice(0,5)}`; // never shows email — privacy-safe fallback
   }
 
   const filtered=rows.filter(r=>!search||displayName(r.uid).toLowerCase().includes(search.toLowerCase()));
+  const myRank=rows.findIndex(r=>r.uid===user.uid)+1;
+  const myRow=rows.find(r=>r.uid===user.uid);
 
   return(
     <div style={{minHeight:"100vh"}}>
       <div style={{borderBottom:`1px solid ${C.pitchBorder}`,padding:"0 20px"}}>
         <div style={{maxWidth:700,margin:"0 auto",display:"flex",alignItems:"center",gap:14,padding:"18px 0"}}>
           <button onClick={onBack} style={{background:"transparent",border:`1px solid ${C.pitchBorder}`,color:C.chalkDim,borderRadius:6,width:34,height:34,cursor:"pointer",fontSize:16}}>←</button>
-          <div className="display" style={{fontSize:20}}>GLOBAL LEADERBOARD</div>
+          <div className="display" style={{fontSize:20,flex:1}}>GLOBAL LEADERBOARD</div>
+          <button onClick={()=>setShowInfo(true)} style={{background:"transparent",border:`1px solid ${C.pitchBorder}`,color:C.chalkDim,borderRadius:"50%",width:28,height:28,cursor:"pointer",fontSize:13,fontWeight:700}}>ⓘ</button>
         </div>
       </div>
 
-      <div style={{maxWidth:700,margin:"0 auto",padding:"28px 20px 60px"}}>
-        <div className="mono" style={{fontSize:12,color:C.chalkDim,marginBottom:20}}>
-          Ranked by points-per-team — the fairest way to compare across different sweepstakes. Requires {MIN_SWEEPSTAKES_TO_QUALIFY}+ active sweepstakes to qualify.
+      {/* Your rank — front and center, no scrolling needed */}
+      <div style={{maxWidth:700,margin:"0 auto",padding:"24px 20px 0"}}>
+        <div className="ticket" style={{textAlign:"center",padding:"24px 20px"}}>
+          {!loading&&myRow?(
+            <>
+              <div className="display" style={{fontSize:48,color:C.amber,lineHeight:1}}>#{myRank}</div>
+              <div className="mono" style={{fontSize:13,color:C.chalk,fontWeight:700,marginTop:6}}>{displayName(user.uid)}</div>
+              <div className="mono" style={{fontSize:11,color:C.chalkDim,marginTop:4}}>{myRow.pointsPerTeam.toFixed(1)} pts/team · {myRow.sweepstakeCount} sweepstakes</div>
+            </>
+          ):!loading?(
+            <div className="mono" style={{fontSize:12,color:C.chalkDim}}>
+              You're not ranked yet — need {MIN_SWEEPSTAKES_TO_QUALIFY}+ active sweepstakes to qualify
+            </div>
+          ):(
+            <div className="mono" style={{fontSize:12,color:C.chalkDim}}>Loading your rank...</div>
+          )}
+        </div>
+      </div>
+
+      <div style={{maxWidth:700,margin:"0 auto",padding:"20px 20px 60px"}}>
+        <div className="mono" style={{fontSize:11,color:C.chalkDim,marginBottom:16}}>
+          Ranked by points-per-team — the fairest way to compare across different sweepstakes. Requires {MIN_SWEEPSTAKES_TO_QUALIFY}+ active sweepstakes to qualify. <span onClick={()=>setShowInfo(true)} style={{color:C.amber,cursor:"pointer",textDecoration:"underline"}}>How is this scored?</span>
         </div>
 
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..."
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by name..."
           style={{...fieldInput,marginBottom:20}}/>
 
         {error&&<div style={{color:C.red,fontSize:12,marginBottom:16,fontWeight:600}} className="mono">⚠ {error}</div>}
@@ -769,6 +881,48 @@ function GlobalLeaderboard({user,onBack}){
             })}
           </div>
         )}
+      </div>
+
+      {showInfo&&<ScoringInfoModal onClose={()=>setShowInfo(false)}/>}
+    </div>
+  );
+}
+
+// ── SCORING INFO MODAL ────────────────────────────────────────
+function ScoringInfoModal({onClose}){
+  const rows=[
+    ["Group/League win",`+${DEFAULT_SCORING.groupWin}`],
+    ["Group/League draw",`+${DEFAULT_SCORING.groupDraw}`],
+    ["Group/League loss","+0"],
+    ["Playoff round win",`+${DEFAULT_SCORING.playoff}`],
+    ["Round of 32 win",`+${DEFAULT_SCORING.r32}`],
+    ["Round of 16 win",`+${DEFAULT_SCORING.r16}`],
+    ["Quarter-final win",`+${DEFAULT_SCORING.qf}`],
+    ["Semi-final win",`+${DEFAULT_SCORING.sf}`],
+    ["Runner-up (lost final)",`+${DEFAULT_SCORING.runnerUp}`],
+    ["Champion",`+${DEFAULT_SCORING.champion}`],
+  ];
+  return(
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:70,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div onClick={e=>e.stopPropagation()} className="fade-up" style={{background:C.pitchLight,border:`1px solid ${C.pitchBorder}`,borderRadius:14,padding:26,width:"100%",maxWidth:400,maxHeight:"85vh",overflowY:"auto"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div className="display" style={{fontSize:17}}>HOW SCORING WORKS</div>
+          <button onClick={onClose} style={{background:"transparent",border:"none",color:C.chalkDim,fontSize:20,cursor:"pointer"}}>✕</button>
+        </div>
+        <div className="mono" style={{fontSize:12,color:C.chalkDim,lineHeight:1.6,marginBottom:16}}>
+          Points aren't just win/draw/loss — knockout progression earns big bonuses on top of every match your team plays. This applies to every sweepstake, and is what Points/Team measures.
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:0}}>
+          {rows.map(([label,val],i)=>(
+            <div key={label} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:i<rows.length-1?`1px solid ${C.pitch}`:"none"}}>
+              <span className="mono" style={{fontSize:12,color:C.chalk}}>{label}</span>
+              <span className="display" style={{fontSize:13,color:C.amber}}>{val}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mono" style={{fontSize:11,color:C.chalkDim,marginTop:16,lineHeight:1.5}}>
+          Knockout bonuses stack — a team that wins the final earns every round's bonus along the way, on top of all group/league points it picked up too.
+        </div>
       </div>
     </div>
   );
