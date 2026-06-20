@@ -616,6 +616,23 @@ function EmptyState({onCreateNew}){
 
 // ── APP ROOT ─────────────────────────────────────────────────
 // ── FORMAT DEFINITIONS ───────────────────────────────────────
+// ── PRESET TOURNAMENT DATA ────────────────────────────────────
+const PL_2026_27_FIXTURES=[["Friday 21 August 2026","Arsenal","Coventry City"],["Saturday 22 August","Hull City","Manchester United"],["Saturday 22 August","Everton","Crystal Palace"],["Saturday 22 August","Ipswich Town","Sunderland"],["Saturday 22 August","Nottingham Forest","Leeds United"],["Saturday 22 August","Brentford","Tottenham Hotspur"],["Sunday 23 August","Brighton & Hove Albion","Aston Villa"],["Sunday 23 August","Manchester City","AFC Bournemouth"],["Sunday 23 August","Newcastle United","Liverpool"],["Monday 24 August","Fulham","Chelsea"],["Saturday 29 August","AFC Bournemouth","Everton"],["Saturday 29 August","Aston Villa","Arsenal"],["Saturday 29 August","Chelsea","Brighton & Hove Albion"],["Saturday 29 August","Coventry City","Hull City"],["Saturday 29 August","Crystal Palace","Manchester City"],["Saturday 29 August","Leeds United","Brentford"],["Saturday 29 August","Liverpool","Nottingham Forest"],["Saturday 29 August","Manchester United","Ipswich Town"],["Saturday 29 August","Sunderland","Fulham"],["Saturday 29 August","Tottenham Hotspur","Newcastle United"],["Saturday 5 September","Arsenal","Chelsea"],["Saturday 5 September","Brentford","Sunderland"],["Saturday 5 September","Brighton & Hove Albion","Leeds United"],["Saturday 5 September","Everton","Manchester United"],["Saturday 5 September","Fulham","Crystal Palace"],["Saturday 5 September","Hull City","Aston Villa"],["Saturday 5 September","Ipswich Town","Liverpool"],["Saturday 5 September","Manchester City","Coventry City"],["Saturday 5 September","Newcastle United","AFC Bournemouth"],["Saturday 5 September","Nottingham Forest","Tottenham Hotspur"],["Saturday 12 September","AFC Bournemouth","Brentford"],["Saturday 12 September","Aston Villa","Nottingham Forest"],["Saturday 12 September","Chelsea","Hull City"],["Saturday 12 September","Coventry City","Brighton & Hove Albion"],["Saturday 12 September","Crystal Palace","Ipswich Town"],["Saturday 12 September","Leeds United","Newcastle United"],["Saturday 12 September","Liverpool","Fulham"],["Saturday 12 September","Manchester United","Manchester City"],["Saturday 12 September","Sunderland","Arsenal"],["Saturday 12 September","Tottenham Hotspur","Everton"],["Saturday 19 September","AFC Bournemouth","Liverpool"],["Saturday 19 September","Brentford","Chelsea"],["Saturday 19 September","Brighton & Hove Albion","Arsenal"],["Saturday 19 September","Everton","Ipswich Town"],["Saturday 19 September","Fulham","Manchester United"],["Saturday 19 September","Leeds United","Crystal Palace"],["Saturday 19 September","Manchester City","Sunderland"],["Saturday 19 September","Newcastle United","Hull City"],["Saturday 19 September","Nottingham Forest","Coventry City"],["Saturday 19 September","Tottenham Hotspur","Aston Villa"],["Saturday 10 October","Arsenal","Leeds United"],["Saturday 10 October","Aston Villa","Brentford"],["Saturday 10 October","Chelsea","AFC Bournemouth"],["Saturday 10 October","Coventry City","Newcastle United"],["Saturday 10 October","Crystal Palace","Nottingham Forest"],["Saturday 10 October","Hull City","Everton"],["Saturday 10 October","Ipswich Town","Fulham"],["Saturday 10 October","Liverpool","Manchester City"],["Saturday 10 October","Manchester United","Tottenham Hotspur"],["Saturday 10 October","Sunderland","Brighton & Hove Albion"],["Saturday 17 October","AFC Bournemouth","Sunderland"],["Saturday 17 October","Brentford","Liverpool"],["Saturday 17 October","Brighton & Hove Albion","Crystal Palace"],["Saturday 17 October","Everton","Chelsea"],["Saturday 17 October","Fulham","Hull City"],["Saturday 17 October","Leeds United","Manchester United"],["Saturday 17 October","Manchester City","Ipswich Town"],["Saturday 17 October","Newcastle United","Aston Villa"],["Saturday 17 October","Nottingham Forest","Arsenal"],["Saturday 17 October","Tottenham Hotspur","Coventry City"],["Saturday 24 October","Arsenal","Everton"],["Saturday 24 October","Aston Villa","Manchester City"],["Saturday 24 October","Chelsea","Tottenham Hotspur"],["Saturday 24 October","Coventry City","Fulham"],["Saturday 24 October","Crystal Palace","Newcastle United"],["Saturday 24 October","Hull City","Brentford"],["Saturday 24 October","Ipswich Town","Nottingham Forest"],["Saturday 24 October","Liverpool","Brighton & Hove Albion"],["Saturday 24 October","Manchester United","AFC Bournemouth"],["Saturday 24 October","Sunderland","Leeds United"],["Saturday 31 October","AFC Bournemouth","Leeds United"],["Saturday 31 October","Aston Villa","Fulham"],["Saturday 31 October","Brentford","Nottingham Forest"],["Saturday 31 October","Chelsea","Manchester United"],["Saturday 31 October","Coventry City","Sunderland"],["Saturday 31 October","Hull City","Ipswich Town"],["Saturday 31 October","Liverpool","Arsenal"],["Saturday 31 October","Manchester City","Brighton & Hove Albion"],["Saturday 31 October","Newcastle United","Everton"],["Saturday 31 October","Tottenham Hotspur","Crystal Palace"],["Saturday 7 November","Arsenal","Hull City"],["Saturday 7 November","Brighton & Hove Albion","Brentford"],["Saturday 7 November","Crystal Palace","Liverpool"],["Saturday 7 November","Everton","Coventry City"],["Saturday 7 November","Fulham","Newcastle United"],["Saturday 7 November","Ipswich Town","AFC Bournemouth"],["Saturday 7 November","Leeds United","Tottenham Hotspur"],["Saturday 7 November","Manchester United","Aston Villa"],["Saturday 7 November","Nottingham Forest","Manchester City"],["Saturday 7 November","Sunderland","Chelsea"],["Saturday 21 November","AFC Bournemouth","Nottingham Forest"],["Saturday 21 November","Aston Villa","Sunderland"],["Saturday 21 November","Brentford","Everton"],["Saturday 21 November","Chelsea","Leeds United"],["Saturday 21 November","Coventry City","Crystal Palace"],["Saturday 21 November","Hull City","Brighton & Hove Albion"],["Saturday 21 November","Liverpool","Manchester United"],["Saturday 21 November","Manchester City","Fulham"],["Saturday 21 November","Newcastle United","Arsenal"],["Saturday 21 November","Tottenham Hotspur","Ipswich Town"],["Saturday 28 November","Arsenal","Manchester City"],["Saturday 28 November","Brighton & Hove Albion","Newcastle United"],["Saturday 28 November","Crystal Palace","Hull City"],["Saturday 28 November","Everton","Liverpool"],["Saturday 28 November","Fulham","AFC Bournemouth"],["Saturday 28 November","Ipswich Town","Aston Villa"],["Saturday 28 November","Leeds United","Coventry City"],["Saturday 28 November","Manchester United","Brentford"],["Saturday 28 November","Nottingham Forest","Chelsea"],["Saturday 28 November","Sunderland","Tottenham Hotspur"],["Wednesday 2 December","AFC Bournemouth","Brighton & Hove Albion"],["Wednesday 2 December","Aston Villa","Everton"],["Wednesday 2 December","Brentford","Arsenal"],["Wednesday 2 December","Chelsea","Crystal Palace"],["Wednesday 2 December","Coventry City","Ipswich Town"],["Wednesday 2 December","Hull City","Nottingham Forest"],["Wednesday 2 December","Liverpool","Sunderland"],["Wednesday 2 December","Manchester City","Leeds United"],["Wednesday 2 December","Newcastle United","Manchester United"],["Wednesday 2 December","Tottenham Hotspur","Fulham"],["Saturday 5 December","AFC Bournemouth","Hull City"],["Saturday 5 December","Aston Villa","Crystal Palace"],["Saturday 5 December","Brentford","Manchester City"],["Saturday 5 December","Chelsea","Liverpool"],["Saturday 5 December","Everton","Fulham"],["Saturday 5 December","Leeds United","Ipswich Town"],["Saturday 5 December","Manchester United","Coventry City"],["Saturday 5 December","Newcastle United","Sunderland"],["Saturday 5 December","Nottingham Forest","Brighton & Hove Albion"],["Saturday 5 December","Tottenham Hotspur","Arsenal"],["Saturday 12 December","Arsenal","AFC Bournemouth"],["Saturday 12 December","Brighton & Hove Albion","Everton"],["Saturday 12 December","Coventry City","Aston Villa"],["Saturday 12 December","Crystal Palace","Manchester United"],["Saturday 12 December","Fulham","Brentford"],["Saturday 12 December","Hull City","Tottenham Hotspur"],["Saturday 12 December","Ipswich Town","Newcastle United"],["Saturday 12 December","Liverpool","Leeds United"],["Saturday 12 December","Manchester City","Chelsea"],["Saturday 12 December","Sunderland","Nottingham Forest"],["Saturday 19 December","AFC Bournemouth","Coventry City"],["Saturday 19 December","Arsenal","Manchester United"],["Saturday 19 December","Brentford","Newcastle United"],["Saturday 19 December","Brighton & Hove Albion","Ipswich Town"],["Saturday 19 December","Chelsea","Aston Villa"],["Saturday 19 December","Leeds United","Fulham"],["Saturday 19 December","Liverpool","Tottenham Hotspur"],["Saturday 19 December","Manchester City","Hull City"],["Saturday 19 December","Nottingham Forest","Everton"],["Saturday 19 December","Sunderland","Crystal Palace"],["Saturday 26 December","Aston Villa","Leeds United"],["Saturday 26 December","Coventry City","Chelsea"],["Saturday 26 December","Crystal Palace","Arsenal"],["Saturday 26 December","Everton","Sunderland"],["Saturday 26 December","Fulham","Brighton & Hove Albion"],["Saturday 26 December","Hull City","Liverpool"],["Saturday 26 December","Ipswich Town","Brentford"],["Saturday 26 December","Manchester United","Nottingham Forest"],["Saturday 26 December","Newcastle United","Manchester City"],["Saturday 26 December","Tottenham Hotspur","AFC Bournemouth"],["Wednesday 30 December","Aston Villa","Liverpool"],["Wednesday 30 December","Coventry City","Brentford"],["Wednesday 30 December","Crystal Palace","AFC Bournemouth"],["Wednesday 30 December","Everton","Manchester City"],["Wednesday 30 December","Fulham","Arsenal"],["Wednesday 30 December","Hull City","Leeds United"],["Wednesday 30 December","Ipswich Town","Chelsea"],["Wednesday 30 December","Manchester United","Sunderland"],["Wednesday 30 December","Newcastle United","Nottingham Forest"],["Wednesday 30 December","Tottenham Hotspur","Brighton & Hove Albion"],["Saturday 2 January 2027","AFC Bournemouth","Aston Villa"],["Saturday 2 January 2027","Arsenal","Ipswich Town"],["Saturday 2 January 2027","Brentford","Crystal Palace"],["Saturday 2 January 2027","Brighton & Hove Albion","Manchester United"],["Saturday 2 January 2027","Chelsea","Newcastle United"],["Saturday 2 January 2027","Leeds United","Everton"],["Saturday 2 January 2027","Liverpool","Coventry City"],["Saturday 2 January 2027","Manchester City","Tottenham Hotspur"],["Saturday 2 January 2027","Nottingham Forest","Fulham"],["Saturday 2 January 2027","Sunderland","Hull City"],["Wednesday 6 January","Arsenal","Brentford"],["Wednesday 6 January","Brighton & Hove Albion","AFC Bournemouth"],["Wednesday 6 January","Crystal Palace","Chelsea"],["Wednesday 6 January","Everton","Aston Villa"],["Wednesday 6 January","Fulham","Tottenham Hotspur"],["Wednesday 6 January","Ipswich Town","Coventry City"],["Wednesday 6 January","Leeds United","Manchester City"],["Wednesday 6 January","Manchester United","Newcastle United"],["Wednesday 6 January","Nottingham Forest","Hull City"],["Wednesday 6 January","Sunderland","Liverpool"],["Saturday 16 January","AFC Bournemouth","Ipswich Town"],["Saturday 16 January","Aston Villa","Manchester United"],["Saturday 16 January","Brentford","Brighton & Hove Albion"],["Saturday 16 January","Chelsea","Sunderland"],["Saturday 16 January","Coventry City","Everton"],["Saturday 16 January","Hull City","Arsenal"],["Saturday 16 January","Liverpool","Crystal Palace"],["Saturday 16 January","Manchester City","Nottingham Forest"],["Saturday 16 January","Newcastle United","Fulham"],["Saturday 16 January","Tottenham Hotspur","Leeds United"],["Saturday 23 January","Arsenal","Newcastle United"],["Saturday 23 January","Brighton & Hove Albion","Manchester City"],["Saturday 23 January","Crystal Palace","Tottenham Hotspur"],["Saturday 23 January","Everton","Brentford"],["Saturday 23 January","Fulham","Aston Villa"],["Saturday 23 January","Ipswich Town","Hull City"],["Saturday 23 January","Leeds United","Chelsea"],["Saturday 23 January","Manchester United","Liverpool"],["Saturday 23 January","Nottingham Forest","AFC Bournemouth"],["Saturday 23 January","Sunderland","Coventry City"],["Saturday 30 January","AFC Bournemouth","Fulham"],["Saturday 30 January","Aston Villa","Ipswich Town"],["Saturday 30 January","Brentford","Manchester United"],["Saturday 30 January","Chelsea","Nottingham Forest"],["Saturday 30 January","Coventry City","Leeds United"],["Saturday 30 January","Hull City","Crystal Palace"],["Saturday 30 January","Liverpool","Everton"],["Saturday 30 January","Manchester City","Arsenal"],["Saturday 30 January","Newcastle United","Brighton & Hove Albion"],["Saturday 30 January","Tottenham Hotspur","Sunderland"],["Saturday 6 February","Arsenal","Liverpool"],["Saturday 6 February","Brighton & Hove Albion","Hull City"],["Saturday 6 February","Crystal Palace","Coventry City"],["Saturday 6 February","Everton","Newcastle United"],["Saturday 6 February","Fulham","Manchester City"],["Saturday 6 February","Ipswich Town","Tottenham Hotspur"],["Saturday 6 February","Leeds United","AFC Bournemouth"],["Saturday 6 February","Manchester United","Chelsea"],["Saturday 6 February","Nottingham Forest","Brentford"],["Saturday 6 February","Sunderland","Aston Villa"],["Wednesday 10 February","Aston Villa","AFC Bournemouth"],["Wednesday 10 February","Coventry City","Liverpool"],["Wednesday 10 February","Crystal Palace","Brentford"],["Wednesday 10 February","Everton","Leeds United"],["Wednesday 10 February","Fulham","Nottingham Forest"],["Wednesday 10 February","Hull City","Sunderland"],["Wednesday 10 February","Ipswich Town","Arsenal"],["Wednesday 10 February","Manchester United","Brighton & Hove Albion"],["Wednesday 10 February","Newcastle United","Chelsea"],["Wednesday 10 February","Tottenham Hotspur","Manchester City"],["Saturday 20 February","AFC Bournemouth","Crystal Palace"],["Saturday 20 February","Arsenal","Fulham"],["Saturday 20 February","Brentford","Coventry City"],["Saturday 20 February","Brighton & Hove Albion","Tottenham Hotspur"],["Saturday 20 February","Chelsea","Ipswich Town"],["Saturday 20 February","Leeds United","Aston Villa"],["Saturday 20 February","Liverpool","Hull City"],["Saturday 20 February","Manchester City","Newcastle United"],["Saturday 20 February","Nottingham Forest","Manchester United"],["Saturday 20 February","Sunderland","Everton"],["Saturday 27 February","Aston Villa","Chelsea"],["Saturday 27 February","Coventry City","AFC Bournemouth"],["Saturday 27 February","Crystal Palace","Sunderland"],["Saturday 27 February","Everton","Nottingham Forest"],["Saturday 27 February","Fulham","Leeds United"],["Saturday 27 February","Hull City","Manchester City"],["Saturday 27 February","Ipswich Town","Brighton & Hove Albion"],["Saturday 27 February","Manchester United","Arsenal"],["Saturday 27 February","Newcastle United","Brentford"],["Saturday 27 February","Tottenham Hotspur","Liverpool"],["Wednesday 3 March","AFC Bournemouth","Tottenham Hotspur"],["Wednesday 3 March","Arsenal","Crystal Palace"],["Wednesday 3 March","Brentford","Ipswich Town"],["Wednesday 3 March","Brighton & Hove Albion","Fulham"],["Wednesday 3 March","Chelsea","Coventry City"],["Wednesday 3 March","Leeds United","Hull City"],["Wednesday 3 March","Liverpool","Aston Villa"],["Wednesday 3 March","Manchester City","Everton"],["Wednesday 3 March","Nottingham Forest","Newcastle United"],["Wednesday 3 March","Sunderland","Manchester United"],["Saturday 13 March","AFC Bournemouth","Newcastle United"],["Saturday 13 March","Aston Villa","Hull City"],["Saturday 13 March","Chelsea","Arsenal"],["Saturday 13 March","Coventry City","Manchester City"],["Saturday 13 March","Crystal Palace","Fulham"],["Saturday 13 March","Leeds United","Brighton & Hove Albion"],["Saturday 13 March","Liverpool","Ipswich Town"],["Saturday 13 March","Manchester United","Everton"],["Saturday 13 March","Sunderland","Brentford"],["Saturday 13 March","Tottenham Hotspur","Nottingham Forest"],["Saturday 20 March","Arsenal","Sunderland"],["Saturday 20 March","Brentford","AFC Bournemouth"],["Saturday 20 March","Brighton & Hove Albion","Coventry City"],["Saturday 20 March","Everton","Tottenham Hotspur"],["Saturday 20 March","Fulham","Liverpool"],["Saturday 20 March","Hull City","Chelsea"],["Saturday 20 March","Ipswich Town","Crystal Palace"],["Saturday 20 March","Manchester City","Manchester United"],["Saturday 20 March","Newcastle United","Leeds United"],["Saturday 20 March","Nottingham Forest","Aston Villa"],["Saturday 10 April","AFC Bournemouth","Manchester City"],["Saturday 10 April","Aston Villa","Brighton & Hove Albion"],["Saturday 10 April","Chelsea","Fulham"],["Saturday 10 April","Coventry City","Arsenal"],["Saturday 10 April","Crystal Palace","Everton"],["Saturday 10 April","Leeds United","Nottingham Forest"],["Saturday 10 April","Liverpool","Newcastle United"],["Saturday 10 April","Manchester United","Hull City"],["Saturday 10 April","Sunderland","Ipswich Town"],["Saturday 10 April","Tottenham Hotspur","Brentford"],["Saturday 17 April","Arsenal","Aston Villa"],["Saturday 17 April","Brentford","Leeds United"],["Saturday 17 April","Brighton & Hove Albion","Chelsea"],["Saturday 17 April","Everton","AFC Bournemouth"],["Saturday 17 April","Fulham","Sunderland"],["Saturday 17 April","Hull City","Coventry City"],["Saturday 17 April","Ipswich Town","Manchester United"],["Saturday 17 April","Manchester City","Crystal Palace"],["Saturday 17 April","Newcastle United","Tottenham Hotspur"],["Saturday 17 April","Nottingham Forest","Liverpool"],["Saturday 24 April","AFC Bournemouth","Arsenal"],["Saturday 24 April","Aston Villa","Coventry City"],["Saturday 24 April","Brentford","Fulham"],["Saturday 24 April","Chelsea","Manchester City"],["Saturday 24 April","Everton","Brighton & Hove Albion"],["Saturday 24 April","Leeds United","Liverpool"],["Saturday 24 April","Manchester United","Crystal Palace"],["Saturday 24 April","Newcastle United","Ipswich Town"],["Saturday 24 April","Nottingham Forest","Sunderland"],["Saturday 24 April","Tottenham Hotspur","Hull City"],["Saturday 1 May","Arsenal","Tottenham Hotspur"],["Saturday 1 May","Brighton & Hove Albion","Nottingham Forest"],["Saturday 1 May","Coventry City","Manchester United"],["Saturday 1 May","Crystal Palace","Aston Villa"],["Saturday 1 May","Fulham","Everton"],["Saturday 1 May","Hull City","AFC Bournemouth"],["Saturday 1 May","Ipswich Town","Leeds United"],["Saturday 1 May","Liverpool","Chelsea"],["Saturday 1 May","Manchester City","Brentford"],["Saturday 1 May","Sunderland","Newcastle United"],["Saturday 8 May","AFC Bournemouth","Manchester United"],["Saturday 8 May","Brentford","Aston Villa"],["Saturday 8 May","Brighton & Hove Albion","Sunderland"],["Saturday 8 May","Everton","Hull City"],["Saturday 8 May","Fulham","Ipswich Town"],["Saturday 8 May","Leeds United","Arsenal"],["Saturday 8 May","Manchester City","Liverpool"],["Saturday 8 May","Newcastle United","Coventry City"],["Saturday 8 May","Nottingham Forest","Crystal Palace"],["Saturday 8 May","Tottenham Hotspur","Chelsea"],["Saturday 15 May","Arsenal","Nottingham Forest"],["Saturday 15 May","Aston Villa","Newcastle United"],["Saturday 15 May","Chelsea","Everton"],["Saturday 15 May","Coventry City","Tottenham Hotspur"],["Saturday 15 May","Crystal Palace","Brighton & Hove Albion"],["Saturday 15 May","Hull City","Fulham"],["Saturday 15 May","Ipswich Town","Manchester City"],["Saturday 15 May","Liverpool","Brentford"],["Saturday 15 May","Manchester United","Leeds United"],["Saturday 15 May","Sunderland","AFC Bournemouth"],["Sunday 23 May","AFC Bournemouth","Chelsea"],["Sunday 23 May","Brentford","Hull City"],["Sunday 23 May","Brighton & Hove Albion","Liverpool"],["Sunday 23 May","Everton","Arsenal"],["Sunday 23 May","Fulham","Coventry City"],["Sunday 23 May","Leeds United","Sunderland"],["Sunday 23 May","Manchester City","Aston Villa"],["Sunday 23 May","Newcastle United","Crystal Palace"],["Sunday 23 May","Nottingham Forest","Ipswich Town"],["Sunday 23 May","Tottenham Hotspur","Manchester United"],["Sunday 30 May","Arsenal","Brighton & Hove Albion"],["Sunday 30 May","Aston Villa","Tottenham Hotspur"],["Sunday 30 May","Chelsea","Brentford"],["Sunday 30 May","Coventry City","Nottingham Forest"],["Sunday 30 May","Crystal Palace","Leeds United"],["Sunday 30 May","Hull City","Newcastle United"],["Sunday 30 May","Ipswich Town","Everton"],["Sunday 30 May","Liverpool","AFC Bournemouth"],["Sunday 30 May","Manchester United","Fulham"],["Sunday 30 May","Sunderland","Manchester City"]];
+
+const PL_2026_27_TEAMS=["Arsenal","Aston Villa","AFC Bournemouth","Brentford","Brighton & Hove Albion","Chelsea","Coventry City","Crystal Palace","Everton","Fulham","Hull City","Ipswich Town","Leeds United","Liverpool","Manchester City","Manchester United","Newcastle United","Nottingham Forest","Sunderland","Tottenham Hotspur"];
+
+const PRESETS=[
+  {
+    id:"pl_2026_27",
+    name:"Premier League 2026/27",
+    icon:"⚽",
+    format:"league",
+    teams:PL_2026_27_TEAMS,
+    fixtures:PL_2026_27_FIXTURES, // [date,home,away][]
+    desc:"All 20 clubs, real fixture list with dates — released 19 June 2026",
+  },
+];
+
 const FORMATS=[
   {id:"groups_knockout",label:"Groups + Knockout",desc:"Group stage tables, then a knockout bracket",icon:"🏆",examples:"World Cup, Euros"},
   {id:"league",label:"League / Season",desc:"One table, running all season",icon:"📊",examples:"Premier League, Championship"},
@@ -635,7 +652,8 @@ function teamCountHint(format){
 
 // ── CREATE SWEEPSTAKE SCREEN ─────────────────────────────────
 function CreateSweepstake({user,onBack,onCreated}){
-  const[step,setStep]=useState("format"); // format | details
+  const[step,setStep]=useState("choose"); // choose | format | details | preset_details
+  const[preset,setPreset]=useState(null);
   const[format,setFormat]=useState(null);
   const[name,setName]=useState("");
   const[tournamentName,setTournamentName]=useState("");
@@ -712,7 +730,17 @@ function CreateSweepstake({user,onBack,onCreated}){
   }
 
   function selectFormat(f){
+    setPreset(null);
     setFormat(f);
+    setStep("details");
+  }
+
+  function selectPreset(p){
+    setPreset(p);
+    setFormat(p.format);
+    setName(p.name);
+    setTournamentName(p.name);
+    setTeamsText(p.teams.join("\n"));
     setStep("details");
   }
 
@@ -759,7 +787,8 @@ function CreateSweepstake({user,onBack,onCreated}){
         name:name.trim(),
         tournamentName:tournamentName.trim()||FORMATS.find(f=>f.id===format)?.examples||"Custom",
         format,
-        source:"custom",
+        source:preset?"preset":"custom",
+        presetId:preset?preset.id:null,
         status:"setup",
         ownerId:user.uid,
         memberIds:[user.uid],
@@ -771,6 +800,7 @@ function CreateSweepstake({user,onBack,onCreated}){
         drawStyle:(format==="knockout"||format==="league_knockout")?drawStyle:null,
         leaguePhaseType:format==="league_knockout"?leaguePhaseType:null,
         swissFixtures:swissFixtures,
+        presetFixtures:(preset&&preset.fixtures)?preset.fixtures:null, // [date,home,away][] — used to seed real fixtures at draw time
         directQualifiers:format==="league_knockout"?directQualifiers:null,
         playoffSpots:format==="league_knockout"?playoffSpots:null,
         matches:{},
@@ -789,12 +819,54 @@ function CreateSweepstake({user,onBack,onCreated}){
     <div style={{minHeight:"100vh"}}>
       <div style={{borderBottom:`1px solid ${C.pitchBorder}`,padding:"0 20px"}}>
         <div style={{maxWidth:700,margin:"0 auto",display:"flex",alignItems:"center",gap:14,padding:"18px 0"}}>
-          <button onClick={()=>step==="details"?setStep("format"):onBack()} style={{background:"transparent",border:`1px solid ${C.pitchBorder}`,color:C.chalkDim,borderRadius:6,width:34,height:34,cursor:"pointer",fontSize:16}}>←</button>
+          <button onClick={()=>{
+            if(step==="details")setStep(preset?"choose":"format");
+            else if(step==="format")setStep("choose");
+            else onBack();
+          }} style={{background:"transparent",border:`1px solid ${C.pitchBorder}`,color:C.chalkDim,borderRadius:6,width:34,height:34,cursor:"pointer",fontSize:16}}>←</button>
           <div className="display" style={{fontSize:20}}>NEW SWEEPSTAKE</div>
         </div>
       </div>
 
       <div style={{maxWidth:700,margin:"0 auto",padding:"28px 20px 60px"}}>
+
+        {step==="choose"&&(
+          <div className="fade-up">
+            <SectionLabel>Pre-loaded Tournaments</SectionLabel>
+            <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28}}>
+              {PRESETS.map(p=>(
+                <div key={p.id} onClick={()=>selectPreset(p)} style={{
+                  background:C.pitchLight,border:`1px solid ${C.amber}50`,borderRadius:10,
+                  padding:"16px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,
+                  transition:"border-color .15s"
+                }}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor=C.amber}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor=`${C.amber}50`}>
+                  <div style={{fontSize:28}}>{p.icon}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:700,fontSize:15,marginBottom:2}}>{p.name}</div>
+                    <div className="mono" style={{fontSize:12,color:C.chalkDim}}>{p.desc}</div>
+                    <div className="mono" style={{fontSize:11,color:C.amber,marginTop:4}}>{p.teams.length} teams pre-loaded · real fixtures</div>
+                  </div>
+                  <div style={{fontSize:18,color:C.chalkDim}}>→</div>
+                </div>
+              ))}
+            </div>
+
+            <SectionLabel>Or Build Custom</SectionLabel>
+            <div onClick={()=>setStep("format")} style={{
+              background:C.pitchLight,border:`1px dashed ${C.pitchBorder}`,borderRadius:10,
+              padding:"16px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14
+            }}>
+              <div style={{fontSize:28}}>🛠️</div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700,fontSize:15,marginBottom:2}}>Custom Sweepstake</div>
+                <div className="mono" style={{fontSize:12,color:C.chalkDim}}>Choose a format and enter your own teams or competitors</div>
+              </div>
+              <div style={{fontSize:18,color:C.chalkDim}}>→</div>
+            </div>
+          </div>
+        )}
 
         {step==="format"&&(
           <div className="fade-up">
@@ -818,17 +890,13 @@ function CreateSweepstake({user,onBack,onCreated}){
                 </div>
               ))}
             </div>
-            <div style={{marginTop:24,textAlign:"center"}} className="mono">
-              <span style={{fontSize:12,color:C.chalkDim}}>Looking for a pre-loaded tournament like the World Cup?</span><br/>
-              <span style={{fontSize:12,color:C.amber}}>Presets coming soon — use Custom for now</span>
-            </div>
           </div>
         )}
 
         {step==="details"&&format&&(
           <form onSubmit={handleCreate} className="fade-up">
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:24}}>
-              <div style={{fontSize:24}}>{FORMATS.find(f=>f.id===format)?.icon}</div>
+              <div style={{fontSize:24}}>{preset?preset.icon:FORMATS.find(f=>f.id===format)?.icon}</div>
               <div>
                 <div style={{fontWeight:700,fontSize:15}}>{FORMATS.find(f=>f.id===format)?.label}</div>
                 <div className="mono" style={{fontSize:11,color:C.chalkDim}}>{FORMATS.find(f=>f.id===format)?.desc}</div>
@@ -957,26 +1025,35 @@ function CreateSweepstake({user,onBack,onCreated}){
             ):(
               <>
                 <label style={{...fieldLabel,marginTop:14}}>Teams / Competitors</label>
-                <div className="mono" style={{fontSize:11,color:C.chalkDim,marginBottom:6}}>
-                  One per line, or paste a column from Excel/Sheets — {teamCountHint(format)}
-                </div>
-                <textarea value={teamsText} onChange={e=>setTeamsText(e.target.value)} rows={8}
-                  placeholder={"Arsenal\nAston Villa\nBournemouth\n..."}
-                  style={{...fieldInput,resize:"vertical",fontFamily:"'Space Mono',monospace",fontSize:13}}/>
-                {teamsText.trim()&&(()=>{
-                  const teamCount=parseList(teamsText).length;
-                  const playerCount=parseList(playersText).length;
-                  const divides=playerCount>0&&teamCount%playerCount===0;
-                  return(
-                    <div className="mono" style={{fontSize:11,color:C.amber,marginTop:6}}>
-                      {teamCount} teams detected
-                      {playerCount>0&&(divides
-                        ?` · ${teamCount/playerCount} per player — divides evenly ✓`
-                        :` · won't divide evenly across ${playerCount} players — you'll choose how to split it at the draw`
-                      )}
+                {preset?(
+                  <div style={{background:C.pitch,border:`1px solid ${C.amber}50`,borderRadius:8,padding:"12px 14px"}}>
+                    <div className="mono" style={{fontSize:12,color:C.amber,fontWeight:700,marginBottom:6}}>✓ {preset.teams.length} teams pre-loaded from {preset.name}</div>
+                    <div className="mono" style={{fontSize:11,color:C.chalkDim,lineHeight:1.6}}>{preset.teams.join(" · ")}</div>
+                  </div>
+                ):(
+                  <>
+                    <div className="mono" style={{fontSize:11,color:C.chalkDim,marginBottom:6}}>
+                      One per line, or paste a column from Excel/Sheets — {teamCountHint(format)}
                     </div>
-                  );
-                })()}
+                    <textarea value={teamsText} onChange={e=>setTeamsText(e.target.value)} rows={8}
+                      placeholder={"Arsenal\nAston Villa\nBournemouth\n..."}
+                      style={{...fieldInput,resize:"vertical",fontFamily:"'Space Mono',monospace",fontSize:13}}/>
+                    {teamsText.trim()&&(()=>{
+                      const teamCount=parseList(teamsText).length;
+                      const playerCount=parseList(playersText).length;
+                      const divides=playerCount>0&&teamCount%playerCount===0;
+                      return(
+                        <div className="mono" style={{fontSize:11,color:C.amber,marginTop:6}}>
+                          {teamCount} teams detected
+                          {playerCount>0&&(divides
+                            ?` · ${teamCount/playerCount} per player — divides evenly ✓`
+                            :` · won't divide evenly across ${playerCount} players — you'll choose how to split it at the draw`
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </>
+                )}
               </>
             )}
 
@@ -1421,6 +1498,7 @@ function LeagueView({sw,onUpdate,onBuildKnockout}){
 function FixtureRow({fx,onUpdate,onConfirm,onEdit}){
   return(
     <div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",borderBottom:`1px solid ${C.pitch}`}}>
+      {fx.date&&<span className="mono" style={{fontSize:9,color:C.chalkDim,width:54,flexShrink:0}}>{fx.date.replace(/^[A-Za-z]+ /,"")}</span>}
       <span style={{flex:1,textAlign:"right",fontSize:13,fontWeight:fx.played?700:500,color:fx.played?C.chalk:C.chalkDim}}>{fx.home}</span>
       <input value={fx.homeScore} onChange={e=>onUpdate(fx.id,"homeScore",e.target.value)} disabled={fx.played}
         style={{...miniScoreInput,background:fx.played?C.pitch:"#06140c"}}/>
@@ -1884,7 +1962,13 @@ function SweepstakeView({user,sweepstakeId,onBack}){
     }
     // League / League+Knockout: turn the configured fixture list into the live fixtures array
     if((sw.format==="league"||sw.format==="league_knockout")&&!(sw.fixtures&&sw.fixtures.length)){
-      if(sw.leaguePhaseType==="swiss"&&sw.swissFixtures&&sw.swissFixtures.length){
+      if(sw.presetFixtures&&sw.presetFixtures.length){
+        // Real fixture list with dates (e.g. Premier League official schedule)
+        patch.fixtures=sw.presetFixtures.map(([date,home,away],i)=>({
+          id:`preset_${i}_${home}_${away}`,
+          date,home,away,homeScore:"",awayScore:"",played:false
+        }));
+      }else if(sw.leaguePhaseType==="swiss"&&sw.swissFixtures&&sw.swissFixtures.length){
         patch.fixtures=sw.swissFixtures.map((fx,i)=>({
           id:`swiss_${i}_${fx.home}_${fx.away}`,
           home:fx.home,away:fx.away,homeScore:"",awayScore:"",played:false
