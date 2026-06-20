@@ -981,6 +981,7 @@ function ManagePresets({user,onBack}){
   const[presets,setPresets]=useState([]);
   const[loading,setLoading]=useState(true);
   const[error,setError]=useState("");
+  const[info,setInfo]=useState("");
   const[editing,setEditing]=useState(null); // null | "new" | preset object
 
   function loadPresets(){
@@ -995,12 +996,19 @@ function ManagePresets({user,onBack}){
   useEffect(()=>{loadPresets();},[]);
 
   async function seedDefaults(){
-    const{db,doc,setDoc}=window._fb;
-    setError("");
+    const{db,doc,setDoc,getDoc}=window._fb;
+    setError("");setInfo("");
     try{
+      let added=0;
+      const addedNames=[];
       for(const p of SEED_PRESETS){
+        const existing=await getDoc(doc(db,"presets",p.id));
+        if(existing.exists())continue; // don't overwrite presets that already exist (may have been edited)
         await setDoc(doc(db,"presets",p.id),p);
+        added++;
+        addedNames.push(p.name);
       }
+      setInfo(added===0?"All default presets already exist — nothing new to add.":`Added: ${addedNames.join(", ")}`);
       loadPresets();
     }catch(e){setError(e.message);}
   }
@@ -1042,13 +1050,14 @@ function ManagePresets({user,onBack}){
 
       <div style={{maxWidth:700,margin:"0 auto",padding:"28px 20px 60px"}}>
         {error&&<div style={{color:C.red,fontSize:12,marginBottom:16,fontWeight:600}} className="mono">⚠ {error}</div>}
+        {info&&<div style={{color:C.amber,fontSize:12,marginBottom:16,fontWeight:600}} className="mono">ℹ {info}</div>}
 
         <div style={{display:"flex",gap:10,marginBottom:24,flexWrap:"wrap"}}>
           <button onClick={()=>setEditing("new")} style={{background:AMBER_GRADIENT,border:"none",color:C.pitch,borderRadius:8,padding:"10px 18px",fontWeight:800,fontSize:13,cursor:"pointer"}}>
             + Add Preset
           </button>
-          {presets.length===0&&!loading&&(
-            <button onClick={seedDefaults} style={pillBtn}>↻ Seed Default Presets</button>
+          {!loading&&(
+            <button onClick={seedDefaults} style={pillBtn}>↻ Add Missing Default Presets</button>
           )}
         </div>
 
