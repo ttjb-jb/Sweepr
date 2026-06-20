@@ -98,6 +98,7 @@ const C={
 };
 
 const AMBER_GRADIENT="linear-gradient(135deg,#f0c93a,#e8b923)";
+const ADMIN_UID="9IH1TgmUjoTWjSokUntmd6jltzg2";
 const menuItemStyle={display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",color:C.chalk,fontSize:13,fontWeight:600,padding:"10px 14px",cursor:"pointer"};
 
 // ── LOGIN SCREEN ─────────────────────────────────────────────
@@ -411,7 +412,7 @@ function toCardData(id,sw,userId){
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────
-function Dashboard({user,onLogout,onOpenSweepstake,onCreateNew,onJoinViaInvite}){
+function Dashboard({user,onLogout,onOpenSweepstake,onCreateNew,onJoinViaInvite,onManagePresets}){
   const[sweepstakes,setSweepstakes]=useState([]);
   const[invites,setInvites]=useState([]);
   const[loading,setLoading]=useState(true);
@@ -500,6 +501,9 @@ function Dashboard({user,onLogout,onOpenSweepstake,onCreateNew,onJoinViaInvite})
             SWEEP<span style={{color:C.amber}}>R</span>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
+            {user.uid===ADMIN_UID&&(
+              <button onClick={onManagePresets} className="mono" style={{background:"transparent",border:`1px solid ${C.amber}60`,color:C.amber,borderRadius:6,padding:"6px 12px",fontSize:11,cursor:"pointer",letterSpacing:1}}>⚙ PRESETS</button>
+            )}
             <div style={{width:32,height:32,borderRadius:"50%",background:AMBER_GRADIENT,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,color:C.pitch,fontSize:13}}>
               {(user.email||"?")[0].toUpperCase()}
             </div>
@@ -621,15 +625,18 @@ const PL_2026_27_FIXTURES=[["Friday 21 August 2026","Arsenal","Coventry City"],[
 
 const PL_2026_27_TEAMS=["Arsenal","Aston Villa","AFC Bournemouth","Brentford","Brighton & Hove Albion","Chelsea","Coventry City","Crystal Palace","Everton","Fulham","Hull City","Ipswich Town","Leeds United","Liverpool","Manchester City","Manchester United","Newcastle United","Nottingham Forest","Sunderland","Tottenham Hotspur"];
 
-const PRESETS=[
+// One-time seed data — used by the admin Manage Presets screen to populate Firestore.
+// After seeding, the live app reads presets from Firestore, not from this constant.
+const SEED_PRESETS=[
   {
     id:"pl_2026_27",
     name:"Premier League 2026/27",
     icon:"⚽",
     format:"league",
     teams:PL_2026_27_TEAMS,
-    fixtures:PL_2026_27_FIXTURES, // [date,home,away][]
+    fixtures:PL_2026_27_FIXTURES.map(([date,home,away])=>({date,home,away})),
     desc:"All 20 clubs, real fixture list with dates — released 19 June 2026",
+    archived:false,
   },
 ];
 
@@ -651,10 +658,234 @@ function teamCountHint(format){
 }
 
 // ── CREATE SWEEPSTAKE SCREEN ─────────────────────────────────
+// ── MANAGE PRESETS (admin only) ───────────────────────────────
+function ManagePresets({user,onBack}){
+  const[presets,setPresets]=useState([]);
+  const[loading,setLoading]=useState(true);
+  const[error,setError]=useState("");
+  const[editing,setEditing]=useState(null); // null | "new" | preset object
+
+  function loadPresets(){
+    const{db,collection,getDocs}=window._fb;
+    setLoading(true);
+    getDocs(collection(db,"presets")).then(snap=>{
+      setPresets(snap.docs.map(d=>({id:d.id,...d.data()})));
+      setLoading(false);
+    }).catch(e=>{setError(e.message);setLoading(false);});
+  }
+
+  useEffect(()=>{loadPresets();},[]);
+
+  async function seedDefaults(){
+    const{db,doc,setDoc}=window._fb;
+    setError("");
+    try{
+      for(const p of SEED_PRESETS){
+        await setDoc(doc(db,"presets",p.id),p);
+      }
+      loadPresets();
+    }catch(e){setError(e.message);}
+  }
+
+  async function toggleArchive(p){
+    const{db,doc,updateDoc}=window._fb;
+    try{
+      await updateDoc(doc(db,"presets",p.id),{archived:!p.archived});
+      loadPresets();
+    }catch(e){setError(e.message);}
+  }
+
+  async function deletePreset(p){
+    if(!window.confirm(`Permanently delete preset "${p.name}"? Sweepstakes already created from it keep working — only the option to create new ones from it is removed.`))return;
+    const{db,doc,deleteDoc}=window._fb;
+    try{
+      await deleteDoc(doc(db,"presets",p.id));
+      loadPresets();
+    }catch(e){setError(e.message);}
+  }
+
+  if(editing){
+    return <PresetEditor preset={editing==="new"?null:editing} onSaved={()=>{setEditing(null);loadPresets();}} onCancel={()=>setEditing(null)}/>;
+  }
+
+  return(
+    <div style={{minHeight:"100vh"}}>
+      <div style={{borderBottom:`1px solid ${C.pitchBorder}`,padding:"0 20px"}}>
+        <div style={{maxWidth:700,margin:"0 auto",display:"flex",alignItems:"center",gap:14,padding:"18px 0"}}>
+          <button onClick={onBack} style={{background:"transparent",border:`1px solid ${C.pitchBorder}`,color:C.chalkDim,borderRadius:6,width:34,height:34,cursor:"pointer",fontSize:16}}>←</button>
+          <div className="display" style={{fontSize:20}}>MANAGE PRESETS</div>
+        </div>
+      </div>
+
+      <div style={{maxWidth:700,margin:"0 auto",padding:"28px 20px 60px"}}>
+        {error&&<div style={{color:C.red,fontSize:12,marginBottom:16,fontWeight:600}} className="mono">⚠ {error}</div>}
+
+        <div style={{display:"flex",gap:10,marginBottom:24,flexWrap:"wrap"}}>
+          <button onClick={()=>setEditing("new")} style={{background:AMBER_GRADIENT,border:"none",color:C.pitch,borderRadius:8,padding:"10px 18px",fontWeight:800,fontSize:13,cursor:"pointer"}}>
+            + Add Preset
+          </button>
+          {presets.length===0&&!loading&&(
+            <button onClick={seedDefaults} style={pillBtn}>↻ Seed Default Presets</button>
+          )}
+        </div>
+
+        {loading?(
+          <div className="mono" style={{color:C.chalkDim,fontSize:12}}>Loading...</div>
+        ):presets.length===0?(
+          <div className="mono" style={{color:C.chalkDim,fontSize:12}}>No presets yet. Add one, or seed the defaults.</div>
+        ):(
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {presets.map(p=>(
+              <div key={p.id} className="ticket" style={{display:"flex",alignItems:"center",padding:"14px 18px",gap:12,opacity:p.archived?0.5:1}}>
+                <div style={{fontSize:24}}>{p.icon||"🏆"}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:700,fontSize:14}}>{p.name}{p.archived&&<span className="mono" style={{fontSize:9,color:C.chalkDim,marginLeft:8}}>ARCHIVED</span>}</div>
+                  <div className="mono" style={{fontSize:11,color:C.chalkDim}}>{p.format} · {(p.teams||[]).length} teams · {(p.fixtures||[]).length} fixtures</div>
+                </div>
+                <button onClick={()=>setEditing(p)} style={{...pillBtn,padding:"6px 12px",fontSize:11}}>Edit</button>
+                <button onClick={()=>toggleArchive(p)} style={{...pillBtn,padding:"6px 12px",fontSize:11}}>{p.archived?"Unarchive":"Archive"}</button>
+                <button onClick={()=>deletePreset(p)} style={{...pillBtn,padding:"6px 12px",fontSize:11,color:C.red,borderColor:C.red}}>Delete</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PresetEditor({preset,onSaved,onCancel}){
+  const isNew=!preset;
+  const[id,setId]=useState(preset?.id||"");
+  const[name,setName]=useState(preset?.name||"");
+  const[icon,setIcon]=useState(preset?.icon||"🏆");
+  const[format,setFormat]=useState(preset?.format||"league");
+  const[desc,setDesc]=useState(preset?.desc||"");
+  const[teamsText,setTeamsText]=useState((preset?.teams||[]).join("\n"));
+  const[fixturesText,setFixturesText]=useState(
+    (preset?.fixtures||[]).map(f=>f.date?`${f.date} | ${f.home} vs ${f.away}`:`${f.home} vs ${f.away}`).join("\n")
+  );
+  const[saving,setSaving]=useState(false);
+  const[error,setError]=useState("");
+
+  function parseTeams(text){
+    return text.split(/[\n\r\t,]+/).map(s=>s.trim()).filter(Boolean);
+  }
+
+  // Parses "Date | Team A vs Team B" or just "Team A vs Team B" (no date) per line
+  function parseFixtures(text){
+    const out=[];
+    text.split("\n").forEach(line=>{
+      line=line.trim();
+      if(!line)return;
+      let date=null,rest=line;
+      const pipeIdx=line.indexOf("|");
+      if(pipeIdx!==-1){
+        date=line.slice(0,pipeIdx).trim();
+        rest=line.slice(pipeIdx+1).trim();
+      }
+      const m=rest.match(/^(.+?)\s+(?:vs\.?|v\.)\s+(.+)$/i);
+      if(m){
+        out.push({date,home:m[1].trim(),away:m[2].trim()});
+      }
+    });
+    return out;
+  }
+
+  async function handleSave(e){
+    e.preventDefault();
+    setError("");
+    const teams=parseTeams(teamsText);
+    const fixtures=parseFixtures(fixturesText);
+    if(!name.trim()){setError("Name is required");return;}
+    if(teams.length===0){setError("Add at least one team");return;}
+    const docId=isNew?(id.trim()||name.trim().toLowerCase().replace(/[^a-z0-9]+/g,"_")):preset.id;
+
+    setSaving(true);
+    try{
+      const{db,doc,setDoc}=window._fb;
+      await setDoc(doc(db,"presets",docId),{
+        name:name.trim(),
+        icon:icon.trim()||"🏆",
+        format,
+        teams,
+        fixtures,
+        desc:desc.trim(),
+        archived:preset?.archived||false,
+      });
+      onSaved();
+    }catch(e){setError(e.message);}
+    finally{setSaving(false);}
+  }
+
+  return(
+    <div style={{minHeight:"100vh"}}>
+      <div style={{borderBottom:`1px solid ${C.pitchBorder}`,padding:"0 20px"}}>
+        <div style={{maxWidth:700,margin:"0 auto",display:"flex",alignItems:"center",gap:14,padding:"18px 0"}}>
+          <button onClick={onCancel} style={{background:"transparent",border:`1px solid ${C.pitchBorder}`,color:C.chalkDim,borderRadius:6,width:34,height:34,cursor:"pointer",fontSize:16}}>←</button>
+          <div className="display" style={{fontSize:20}}>{isNew?"NEW PRESET":"EDIT PRESET"}</div>
+        </div>
+      </div>
+
+      <div style={{maxWidth:700,margin:"0 auto",padding:"28px 20px 60px"}}>
+        <form onSubmit={handleSave}>
+          {isNew&&(
+            <>
+              <label style={fieldLabel}>Preset ID (used internally, no spaces)</label>
+              <input value={id} onChange={e=>setId(e.target.value)} placeholder="e.g. pl_2027_28" style={fieldInput}/>
+            </>
+          )}
+
+          <label style={{...fieldLabel,marginTop:14}}>Name</label>
+          <input value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Premier League 2027/28" style={fieldInput}/>
+
+          <label style={{...fieldLabel,marginTop:14}}>Icon (emoji)</label>
+          <input value={icon} onChange={e=>setIcon(e.target.value)} style={{...fieldInput,maxWidth:80}}/>
+
+          <label style={{...fieldLabel,marginTop:14}}>Format</label>
+          <select value={format} onChange={e=>setFormat(e.target.value)} style={fieldInput}>
+            {FORMATS.map(f=><option key={f.id} value={f.id}>{f.label}</option>)}
+          </select>
+
+          <label style={{...fieldLabel,marginTop:14}}>Description</label>
+          <input value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Short description shown to organisers" style={fieldInput}/>
+
+          <label style={{...fieldLabel,marginTop:14}}>Teams</label>
+          <div className="mono" style={{fontSize:11,color:C.chalkDim,marginBottom:6}}>One per line, or paste a column from Excel/Sheets</div>
+          <textarea value={teamsText} onChange={e=>setTeamsText(e.target.value)} rows={8}
+            style={{...fieldInput,resize:"vertical",fontFamily:"'Space Mono',monospace",fontSize:13}}/>
+          {teamsText.trim()&&<div className="mono" style={{fontSize:11,color:C.amber,marginTop:6}}>{parseTeams(teamsText).length} teams</div>}
+
+          <label style={{...fieldLabel,marginTop:14}}>Fixtures (optional)</label>
+          <div className="mono" style={{fontSize:11,color:C.chalkDim,marginBottom:6}}>
+            One per line: <code style={{background:C.pitch,padding:"1px 5px",borderRadius:3}}>Date | TeamA vs TeamB</code> or just <code style={{background:C.pitch,padding:"1px 5px",borderRadius:3}}>TeamA vs TeamB</code> with no date
+          </div>
+          <textarea value={fixturesText} onChange={e=>setFixturesText(e.target.value)} rows={10}
+            placeholder={"Friday 21 August 2026 | Arsenal vs Coventry City\nSaturday 22 August | Hull City vs Manchester United\n..."}
+            style={{...fieldInput,resize:"vertical",fontFamily:"'Space Mono',monospace",fontSize:12}}/>
+          {fixturesText.trim()&&<div className="mono" style={{fontSize:11,color:C.amber,marginTop:6}}>{parseFixtures(fixturesText).length} fixtures</div>}
+
+          {error&&<div style={{color:C.red,fontSize:12,marginTop:10,fontWeight:600}}>{error}</div>}
+
+          <button type="submit" disabled={saving} style={{
+            width:"100%",marginTop:24,padding:"14px 0",borderRadius:8,border:"none",
+            background:AMBER_GRADIENT,color:C.pitch,fontWeight:800,fontSize:14,letterSpacing:0.5,
+            cursor:saving?"default":"pointer",opacity:saving?0.7:1
+          }}>
+            {saving?"Saving...":isNew?"Create Preset":"Save Changes"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function CreateSweepstake({user,onBack,onCreated}){
   const[step,setStep]=useState("choose"); // choose | format | details | preset_details
   const[preset,setPreset]=useState(null);
   const[format,setFormat]=useState(null);
+  const[presets,setPresets]=useState([]);
+  const[presetsLoading,setPresetsLoading]=useState(true);
   const[name,setName]=useState("");
   const[tournamentName,setTournamentName]=useState("");
   const[playersText,setPlayersText]=useState("");
@@ -729,6 +960,15 @@ function CreateSweepstake({user,onBack,onCreated}){
     return pairs;
   }
 
+  useEffect(()=>{
+    const{db,collection,getDocs}=window._fb;
+    getDocs(collection(db,"presets")).then(snap=>{
+      const list=snap.docs.map(d=>({id:d.id,...d.data()})).filter(p=>!p.archived);
+      setPresets(list);
+      setPresetsLoading(false);
+    }).catch(()=>setPresetsLoading(false));
+  },[]);
+
   function selectFormat(f){
     setPreset(null);
     setFormat(f);
@@ -800,7 +1040,7 @@ function CreateSweepstake({user,onBack,onCreated}){
         drawStyle:(format==="knockout"||format==="league_knockout")?drawStyle:null,
         leaguePhaseType:format==="league_knockout"?leaguePhaseType:null,
         swissFixtures:swissFixtures,
-        presetFixtures:(preset&&preset.fixtures)?preset.fixtures.map(([date,home,away])=>({date,home,away})):null, // Firestore can't store nested arrays — flatten to objects
+        presetFixtures:(preset&&preset.fixtures)?preset.fixtures:null, // already stored as {date,home,away} objects
         directQualifiers:format==="league_knockout"?directQualifiers:null,
         playoffSpots:format==="league_knockout"?playoffSpots:null,
         matches:{},
@@ -833,8 +1073,13 @@ function CreateSweepstake({user,onBack,onCreated}){
         {step==="choose"&&(
           <div className="fade-up">
             <SectionLabel>Pre-loaded Tournaments</SectionLabel>
-            <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28}}>
-              {PRESETS.map(p=>(
+            {presetsLoading?(
+              <div className="mono" style={{fontSize:12,color:C.chalkDim,marginBottom:20}}>Loading presets...</div>
+            ):presets.length===0?(
+              <div className="mono" style={{fontSize:12,color:C.chalkDim,marginBottom:20}}>No presets available yet — use Custom below</div>
+            ):(
+              <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28}}>
+                {presets.map(p=>(
                 <div key={p.id} onClick={()=>selectPreset(p)} style={{
                   background:C.pitchLight,border:`1px solid ${C.amber}50`,borderRadius:10,
                   padding:"16px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,
@@ -851,7 +1096,8 @@ function CreateSweepstake({user,onBack,onCreated}){
                   <div style={{fontSize:18,color:C.chalkDim}}>→</div>
                 </div>
               ))}
-            </div>
+              </div>
+            )}
 
             <SectionLabel>Or Build Custom</SectionLabel>
             <div onClick={()=>setStep("format")} style={{
@@ -2332,6 +2578,10 @@ function App(){
     return <SweepstakeView user={user} sweepstakeId={openSweepstakeId} onBack={()=>{setScreen("dashboard");setOpenSweepstakeId(null);}}/>;
   }
 
+  if(screen==="presets"){
+    return <ManagePresets user={user} onBack={()=>setScreen("dashboard")}/>;
+  }
+
   return(
     <Dashboard
       user={user}
@@ -2339,6 +2589,7 @@ function App(){
       onOpenSweepstake={sw=>{setOpenSweepstakeId(sw.id);setScreen("view");}}
       onCreateNew={()=>setScreen("create")}
       onJoinViaInvite={(swId)=>setInviteId(swId)}
+      onManagePresets={()=>setScreen("presets")}
     />
   );
 }
