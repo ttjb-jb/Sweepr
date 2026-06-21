@@ -2719,6 +2719,19 @@ function SweepstakeView({user,sweepstakeId,onBack}){
     }catch(e){setError(e.message);}
   }
 
+  async function leaveSweepstake(){
+    if(!myClaimedName)return;
+    if(!window.confirm(`Leave "${sw.name}"? Your name "${myClaimedName}" will become unclaimed and your points from this sweepstake will no longer count toward your stats. You can rejoin later via the same invite link.`))return;
+    const{db,doc,updateDoc,arrayRemove}=window._fb;
+    try{
+      await updateDoc(doc(db,"sweepstakes",sweepstakeId),{
+        memberIds:arrayRemove(user.uid),
+        [`playerUserIds.${myClaimedName}`]:null,
+      });
+      onBack();
+    }catch(e){setError(e.message);}
+  }
+
   // Determine tabs based on format
   const tabs=needsDraw?["draw"]:(()=>{
     switch(sw.format){
@@ -2750,6 +2763,12 @@ function SweepstakeView({user,sweepstakeId,onBack}){
                 background:"transparent",border:`1px solid ${C.amber}`,color:C.amber,borderRadius:6,
                 padding:"7px 12px",fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",gap:5
               }}>👥 Invite</button>
+            )}
+            {sw.ownerId!==user.uid&&myClaimedName&&(
+              <button onClick={leaveSweepstake} style={{
+                background:"transparent",border:`1px solid ${C.pitchBorder}`,color:C.chalkDim,borderRadius:6,
+                padding:"7px 12px",fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0
+              }}>Leave</button>
             )}
           </div>
           {!needsDraw&&(
