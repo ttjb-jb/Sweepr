@@ -2450,7 +2450,7 @@ function KnockoutView({sw,onUpdate}){
               🎟️ {isPlayoffRound?"Enter the official playoff draw — pick a seeded and unseeded team for each tie":fedByPlayoff?"Select the playoff winner that fills each TBD slot":"Enter the official draw result — select which team fills each slot below"}
             </div>
           )}
-          <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(4,knockout[round].length)},1fr)`,gap:10}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:10}}>
             {knockout[round].map((m,i)=>{
               const matchNum=(roundMatchOffset[round]||1)+i;
               // For auto-propagated TBD slots, work out which previous match feeds this slot
