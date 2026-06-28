@@ -2627,12 +2627,139 @@ function InvitePanel({sw,user,onClose}){
   );
 }
 
+// ── BRACKET BUILDER ───────────────────────────────────────────
+// Shown when organiser clicks "Build Knockout Bracket" on a groups_knockout sweepstake.
+// Auto mode: uses our qualifier algorithm (top 2 per group + best 3rd-placed teams).
+// Manual mode: organiser picks who plays who to match the real tournament draw.
+function BracketBuilder({sw,onConfirm,onCancel}){
+  const[mode,setMode]=useState(null); // null | "auto" | "manual"
+  const[pairings,setPairings]=useState([]);
+
+  // Compute qualifiers list from actual group standings
+  const standings=recalcGroupStandings(sw.groups||{},sw.matches||generateGroupMatches(sw.groups||{}));
+  const autoQualifiers=buildQualifiers(sw.groups||{},standings);
+
+  // All teams that qualified (top 2 per group + best 3rd placed)
+  const qualifiedTeams=[...autoQualifiers];
+
+  function initManual(){
+    // Start with empty pairings, one per R32 match
+    const numMatches=Math.floor(qualifiedTeams.length/2);
+    setPairings(Array(numMatches).fill(null).map(()=>({home:"",away:""})));
+    setMode("manual");
+  }
+
+  function updatePairing(i,slot,val){
+    setPairings(prev=>prev.map((p,pi)=>pi===i?{...p,[slot]:val}:p));
+  }
+
+  function teamsUsed(){
+    const used=new Set();
+    pairings.forEach(p=>{if(p.home)used.add(p.home);if(p.away)used.add(p.away);});
+    return used;
+  }
+
+  function manualQualifiers(){
+    // Flatten pairings into the order bracket expects: [match1home, match1away, match2home, match2away,...]
+    return pairings.flatMap(p=>[p.home||"TBD",p.away||"TBD"]);
+  }
+
+  const manualComplete=mode==="manual"&&pairings.every(p=>p.home&&p.away);
+  const unpairedTeams=qualifiedTeams.filter(t=>!teamsUsed().has(t));
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:60,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"20px 16px",overflowY:"auto"}}>
+      <div className="fade-up" style={{background:C.pitchLight,border:`1px solid ${C.pitchBorder}`,borderRadius:14,padding:24,width:"100%",maxWidth:560}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div className="display" style={{fontSize:18}}>BUILD KNOCKOUT BRACKET</div>
+          <button onClick={onCancel} style={{background:"transparent",border:"none",color:C.chalkDim,fontSize:20,cursor:"pointer"}}>✕</button>
+        </div>
+
+        {!mode&&(
+          <>
+            <div className="mono" style={{fontSize:12,color:C.chalkDim,marginBottom:20,lineHeight:1.6}}>
+              {qualifiedTeams.length} teams qualified. How should the R32 bracket be set up?
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              <div onClick={()=>onConfirm(autoQualifiers)} style={{
+                background:C.pitch,border:`1px solid ${C.pitchBorder}`,borderRadius:10,
+                padding:"16px 18px",cursor:"pointer"
+              }}
+                onMouseEnter={e=>e.currentTarget.style.borderColor=C.amber}
+                onMouseLeave={e=>e.currentTarget.style.borderColor=C.pitchBorder}>
+                <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>⚡ Auto-Generate</div>
+                <div className="mono" style={{fontSize:11,color:C.chalkDim}}>Generates a bracket from group standings — top 2 per group + best 3rd-placed teams. Quick but won't match a real tournament's official draw.</div>
+              </div>
+              <div onClick={initManual} style={{
+                background:C.pitch,border:`1px solid ${C.pitchBorder}`,borderRadius:10,
+                padding:"16px 18px",cursor:"pointer"
+              }}
+                onMouseEnter={e=>e.currentTarget.style.borderColor=C.amber}
+                onMouseLeave={e=>e.currentTarget.style.borderColor=C.pitchBorder}>
+                <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>✏️ Manual Draw</div>
+                <div className="mono" style={{fontSize:11,color:C.chalkDim}}>Pick who plays who yourself to match the real tournament's official draw (e.g. FIFA's published R32 bracket).</div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {mode==="manual"&&(
+          <>
+            <div className="mono" style={{fontSize:11,color:C.chalkDim,marginBottom:16,lineHeight:1.5}}>
+              Set each R32 matchup below. All {qualifiedTeams.length} qualified teams must be paired.
+              {unpairedTeams.length>0&&<span style={{color:C.amber}}> {unpairedTeams.length} unpaired: {unpairedTeams.join(", ")}</span>}
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:"55vh",overflowY:"auto",paddingRight:4}}>
+              {pairings.map((p,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:8,background:C.pitch,borderRadius:8,padding:"10px 12px"}}>
+                  <div className="mono" style={{fontSize:11,color:C.chalkDim,width:24,flexShrink:0}}>#{i+1}</div>
+                  <select value={p.home} onChange={e=>updatePairing(i,"home",e.target.value)} style={{
+                    flex:1,background:p.home?C.amber:C.pitchLight,color:p.home?C.pitch:C.chalkDim,
+                    border:`1px solid ${C.pitchBorder}`,borderRadius:6,padding:"6px 8px",fontSize:12,fontWeight:700
+                  }}>
+                    <option value="">— Home team —</option>
+                    {qualifiedTeams.filter(t=>!teamsUsed().has(t)||t===p.home).map(t=>(
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                  <div className="mono" style={{fontSize:11,color:C.chalkDim}}>vs</div>
+                  <select value={p.away} onChange={e=>updatePairing(i,"away",e.target.value)} style={{
+                    flex:1,background:p.away?C.amber:C.pitchLight,color:p.away?C.pitch:C.chalkDim,
+                    border:`1px solid ${C.pitchBorder}`,borderRadius:6,padding:"6px 8px",fontSize:12,fontWeight:700
+                  }}>
+                    <option value="">— Away team —</option>
+                    {qualifiedTeams.filter(t=>!teamsUsed().has(t)||t===p.away).map(t=>(
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+
+            <div style={{display:"flex",gap:10,marginTop:16}}>
+              <button onClick={()=>setMode(null)} style={pillBtn}>← Back</button>
+              <button onClick={()=>onConfirm(manualQualifiers())} disabled={!manualComplete} style={{
+                flex:1,padding:"12px 0",borderRadius:8,border:"none",cursor:manualComplete?"pointer":"default",
+                background:manualComplete?AMBER_GRADIENT:"#333",color:manualComplete?C.pitch:C.chalkDim,
+                fontWeight:800,fontSize:14,opacity:manualComplete?1:0.5
+              }}>
+                {manualComplete?"✓ Confirm Bracket":"Fill in all matchups to continue"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SweepstakeView({user,sweepstakeId,onBack}){
   const[sw,setSw]=useState(undefined);
   const[tab,setTab]=useState("main");
   const[saving,setSaving]=useState(false);
   const[error,setError]=useState("");
   const[showInvite,setShowInvite]=useState(false);
+  const[showBracketBuilder,setShowBracketBuilder]=useState(false);
 
   useEffect(()=>{
     const{db,doc,onSnapshot}=window._fb;
@@ -2682,11 +2809,14 @@ function SweepstakeView({user,sweepstakeId,onBack}){
 
   async function buildKnockout(){
     if(!sw.groups)return;
-    const standings=recalcGroupStandings(sw.groups,sw.matches||generateGroupMatches(sw.groups));
-    const qualifiers=buildQualifiers(sw.groups,standings);
+    setShowBracketBuilder(true);
+  }
+
+  async function confirmBracket(qualifiers){
     if(qualifiers.length<2){setError("Not enough qualifiers to build a bracket");return;}
     const knockout=buildKnockoutBracket(qualifiers);
     await updateDoc_({knockout});
+    setShowBracketBuilder(false);
     setTab("knockout");
   }
 
@@ -2860,7 +2990,17 @@ function SweepstakeView({user,sweepstakeId,onBack}){
         {!needsDraw&&activeTab==="groups"&&<GroupsView sw={sw} onUpdate={updateDoc_} onBuildKnockout={buildKnockout}/>}
         {!needsDraw&&activeTab==="knockout"&&(
           sw.knockout
-            ?<KnockoutView sw={sw} onUpdate={updateDoc_}/>
+            ?<>
+              {sw.ownerId===user.uid&&sw.format==="groups_knockout"&&(
+                <div style={{marginBottom:16}}>
+                  <button onClick={buildKnockout} style={{...pillBtn,fontSize:11,padding:"6px 12px"}}>
+                    🔄 Rebuild Bracket
+                  </button>
+                  <span className="mono" style={{fontSize:10,color:C.chalkDim,marginLeft:10}}>Use this to fix an incorrect bracket or match the real tournament draw</span>
+                </div>
+              )}
+              <KnockoutView sw={sw} onUpdate={updateDoc_}/>
+            </>
             :sw.format==="groups_knockout"
               ?(
                 <div className="fade-up" style={{textAlign:"center",padding:"60px 20px",color:C.chalkDim}}>
@@ -2889,6 +3029,7 @@ function SweepstakeView({user,sweepstakeId,onBack}){
         )}
       </div>
       {showInvite&&<InvitePanel sw={sw} user={user} onClose={()=>setShowInvite(false)}/>}
+      {showBracketBuilder&&<BracketBuilder sw={sw} onConfirm={confirmBracket} onCancel={()=>setShowBracketBuilder(false)}/>}
     </div>
   );
 }
