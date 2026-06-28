@@ -2481,12 +2481,21 @@ function KnockoutView({sw,onUpdate}){
                           <option value="">— Select {pot==="seeded"?"seeded":pot==="unseeded"?"unseeded":""} team —</option>
                           {options.map(t=><option key={t} value={t}>{t}</option>)}
                         </select>
-                      ):( 
-                        <span style={{flex:1,fontSize:11,fontWeight:isWinner?700:500,color:isWinner?"#2ecc71":isTBD?C.chalkDim:C.chalk,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-                          {isTBD?(feeder?`Winner of ${feeder}`:(pot?`TBD (${pot==="seeded"?"seeded":"playoff winner"})`:"TBD")):team}
-                        </span>
+                      ):(
+                        <div style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:5}}>
+                          <div style={{minWidth:0,flex:1}}>
+                            <div style={{fontSize:12,fontWeight:isWinner?700:600,color:isWinner?"#2ecc71":isTBD?C.chalkDim:C.chalk,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                              {isTBD?(feeder?`Winner of ${feeder}`:(pot?`TBD (${pot==="seeded"?"seeded":"playoff winner"})`:"TBD")):team}
+                            </div>
+                            {owner&&!isTBD&&(
+                              <div className="mono" style={{fontSize:9,color:C.chalkDim,marginTop:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{owner}</div>
+                            )}
+                          </div>
+                          {owner&&!isTBD&&(
+                            <span style={{width:8,height:8,borderRadius:"50%",background:playerColor(owner),flexShrink:0,display:"inline-block"}}/>
+                          )}
+                        </div>
                       )}
-                      {owner&&!isTBD&&<span className="mono" style={{fontSize:8,fontWeight:700,padding:"1px 4px",borderRadius:3,background:playerColor(owner),color:"#06140c"}}>{owner}</span>}
                       {!isTBD&&manualFillRound&&!m.winner&&prevRoundComplete(round)&&(
                         <button onClick={()=>clearSlot(round,i,slot)} style={{...miniIconBtn,fontSize:11,color:C.chalkDim}}>✕</button>
                       )}
