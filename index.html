@@ -2314,6 +2314,9 @@ function GroupsView({sw,onUpdate,onBuildKnockout}){
 
 // ── KNOCKOUT VIEW ─────────────────────────────────────────────
 const ROUND_LABELS={playoff:"Playoff Round",r32:"Round of 32",r16:"Round of 16",qf:"Quarter Finals",sf:"Semi Finals",final:"🏆 Final"};
+// Global match number offset — so R32 match 0 = M1, R16 match 0 = M17, etc.
+// Used to label matches and to show "Winner of M3" in TBD slots
+const ROUND_MATCH_OFFSET={playoff:1,r32:1,r16:17,qf:25,sf:29,final:31};
 
 function KnockoutView({sw,onUpdate}){
   const{knockout,assignments={},players=[],drawStyle="fixed"}=sw;
@@ -2425,9 +2428,17 @@ function KnockoutView({sw,onUpdate}){
             </div>
           )}
           <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(4,knockout[round].length)},1fr)`,gap:10}}>
-            {knockout[round].map((m,i)=>(
+            {knockout[round].map((m,i)=>{
+              const matchNum=(ROUND_MATCH_OFFSET[round]||1)+i;
+              // For auto-propagated TBD slots, work out which previous match feeds this slot
+              const prevRound=rounds[rounds.indexOf(round)-1];
+              const prevOffset=ROUND_MATCH_OFFSET[prevRound]||1;
+              const homeFeeder=prevRound&&!manualFillRound?`M${prevOffset+(i*2)}`:null;
+              const awayFeeder=prevRound&&!manualFillRound?`M${prevOffset+(i*2)+1}`:null;
+              return(
               <div key={i} style={{background:C.pitchLight,border:`1px solid ${C.pitchBorder}`,borderRadius:8,overflow:"hidden"}}>
-                {[{team:m.home,field:"homeScore",slot:"home",pot:m.homePot},{team:m.away,field:"awayScore",slot:"away",pot:m.awayPot}].map(({team,field,slot,pot},si)=>{
+                <div className="mono" style={{fontSize:9,color:C.chalkDim,padding:"4px 9px",borderBottom:`1px solid ${C.pitch}`,letterSpacing:1}}>M{matchNum}</div>
+                {[{team:m.home,field:"homeScore",slot:"home",pot:m.homePot,feeder:homeFeeder},{team:m.away,field:"awayScore",slot:"away",pot:m.awayPot,feeder:awayFeeder}].map(({team,field,slot,pot,feeder},si)=>{
                   const isWinner=m.winner===team;
                   const isTBD=team==="TBD";
                   const owner=assignments[team];
@@ -2447,9 +2458,9 @@ function KnockoutView({sw,onUpdate}){
                           <option value="">— Select {pot==="seeded"?"seeded":pot==="unseeded"?"unseeded":""} team —</option>
                           {options.map(t=><option key={t} value={t}>{t}</option>)}
                         </select>
-                      ):(
+                      ):( 
                         <span style={{flex:1,fontSize:11,fontWeight:isWinner?700:500,color:isWinner?"#2ecc71":isTBD?C.chalkDim:C.chalk,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-                          {team}{isTBD&&pot&&<span className="mono" style={{fontSize:9,color:C.amber,marginLeft:5}}>({pot==="seeded"?"seeded":"playoff winner"})</span>}
+                          {isTBD?(feeder?`Winner of ${feeder}`:(pot?`TBD (${pot==="seeded"?"seeded":"playoff winner"})`:"TBD")):team}
                         </span>
                       )}
                       {owner&&!isTBD&&<span className="mono" style={{fontSize:8,fontWeight:700,padding:"1px 4px",borderRadius:3,background:playerColor(owner),color:"#06140c"}}>{owner}</span>}
@@ -2464,7 +2475,7 @@ function KnockoutView({sw,onUpdate}){
                   );
                 })}
               </div>
-            ))}
+            );})}
           </div>
         </div>
       );})}
@@ -2712,7 +2723,7 @@ function BracketBuilder({sw,onConfirm,onCancel}){
             <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:"55vh",overflowY:"auto",paddingRight:4}}>
               {pairings.map((p,i)=>(
                 <div key={i} style={{display:"flex",alignItems:"center",gap:8,background:C.pitch,borderRadius:8,padding:"10px 12px"}}>
-                  <div className="mono" style={{fontSize:11,color:C.chalkDim,width:24,flexShrink:0}}>#{i+1}</div>
+                  <div className="mono" style={{fontSize:11,color:C.amber,width:28,flexShrink:0}}>M{i+1}</div>
                   <select value={p.home} onChange={e=>updatePairing(i,"home",e.target.value)} style={{
                     flex:1,background:p.home?C.amber:C.pitchLight,color:p.home?C.pitch:C.chalkDim,
                     border:`1px solid ${C.pitchBorder}`,borderRadius:6,padding:"6px 8px",fontSize:12,fontWeight:700
